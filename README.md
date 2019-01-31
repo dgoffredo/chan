@@ -1,6 +1,8 @@
+![cpp-channels](images/cpp-channels.jpg)
+
 `cpp-channels`
 ==============
-Go-like Channels in C++03
+Go-like channels in C++03
 
 Why
 ===
