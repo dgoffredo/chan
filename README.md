@@ -21,8 +21,8 @@ group, `cha`, whose main elements are:
 - `chan::make`: a function for making `Chan`nels.
 - `chan::select`: a function for performing exactly one operation from a set of
   sends and/or received on `Chan`nels.
-- `chan::delayMs`: a function that returns a receive operation on a `Chan`nel
-  that is readable after a specified number of milliseconds.
+- `chan::delay`: a function that returns a receive operation on a `Chan`nel
+  that is readable after a specified time interval.
 - `chan::deadline`: a function that returns a read operation on a `Chan`el that
   is readable after a specified point in time.
 
@@ -44,14 +44,15 @@ int main(int argc, char *argv[])
 {
     using chan::select;
     using chan::make; 
-    using chan::delayMs;
+    using chan::deadline;
 
     chan::Chan<>          input = make(0);  // from standard input
     chan::Chan<StockTick> ticks = subscribe();
     StockTick             tick;
+    Datetime              when = Datetime::now() + Datetime::seconds(2);
 
     for (;;) {
-        switch(select(input.recv, ticks.recv(&tick), delayMs(2000))) {
+        switch(select(input.recv, ticks.recv(&tick), deadline(when))) {
           case 0: {
             std::cout << "Exiting due to caller input.\n";
             return 0;
@@ -61,6 +62,7 @@ int main(int argc, char *argv[])
             break;
           default:
             publishMetrics();
+            when += Datetime::seconds(2);
         }
     }
 }
@@ -75,10 +77,10 @@ void lines(int                     file,  // non-blocking
            chan::Chan<bool>        done,
            std::string             delimiter = "\n")
 {
-    std::vector        buffer(2 * 1024 * 1024);
-    char        *const buf = buffer.data();
-    std::string        current;
-    chan::Chan<>       input(file);
+    std::vector<char>        buffer(2 * 1024 * 1024);
+    char              *const buf = buffer.data();
+    std::string              current;
+    chan::Chan<>             input(file);
 
     for (;;) {
         switch (chan::select(input.recv(buf, buffer.size()), done.recv)) {
@@ -128,7 +130,7 @@ increased (by using more workers).
 More
 ----
 ### Proposed Header File
-Here is a more techincal description of the capbilities I'd like this library
+Here is a more technical description of the capabilities I'd like this library
 to offer.
 ```C++
 namespace chan {
@@ -223,16 +225,16 @@ std::size_t select(EVENT0, EVENT1);
 template <typename EVENT0, typename EVENT1, typename EVENT2>
 std::size_t select(EVENT0, EVENT1, EVENT2);
 
-template <typename EVENT0, typename EVENT1, typename EVENT2, typename EVENT2>
+template <typename EVENT0, typename EVENT1, typename EVENT2, typename EVENT3>
 std::size_t select(EVENT0, EVENT1, EVENT2, EVENT3);
 
 // ...
 
-                        // ====================
-                        // TimeoutEvent delayMs
-                        // ====================
+                        // ==================
+                        // TimeoutEvent delay
+                        // ==================
 
-TimeoutEvent delayMs(double milliseconds);
+TimeoutEvent delay(TimeInterval howLong);
 
                         // =====================
                         // TimeoutEvent deadline
@@ -242,7 +244,7 @@ TimeoutEvent deadline(Datetime when);
 
 ///Concepts
 ///--------
-// The 'chan' library, instead of having a runtime hierarchy if interfaces,
+// The 'chan' library, instead of having a runtime hierarchy of interfaces,
 // will use compile-time protocols possibly backed up by type-erased runtime
 // interfaces where convenient.
 //
@@ -276,9 +278,9 @@ TimeoutEvent deadline(Datetime when);
 // to list their events in a data structure for 'select', instead of always
 // having to pass each event as a function argument, e.g.
 //..
-//  chan::Event selections[] = {foo.recv, bar.send(thing), chan::delayMs(250)};
+//  chan::Event choices[] = {foo.recv, bar.send(thing), chan::delay("250ms")};
 
-//  const std::size_t result = select(selections);
+//  const std::size_t result = select(choices);
 //..
 //
 ///Operation
