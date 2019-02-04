@@ -48,10 +48,11 @@ int main(int argc, char *argv[])
     using chan::make; 
     using chan::deadline;
 
-    chan::Chan<>          input = make(0);  // from standard input
-    chan::Chan<StockTick> ticks = subscribe();
-    StockTick             tick;
-    Datetime              when = Datetime::now() + Datetime::seconds(2);
+    chan::Chan<>             input    = make(0);  // from standard input
+    chan::Chan<StockTick>    ticks    = subscribe();
+    StockTick                tick;
+    const Datetime::Interval interval = Datetime::seconds(2);
+    Datetime                 when     = Datetime::now() + interval;
 
     for (;;) {
         switch(select(input.recv, ticks.recv(&tick), deadline(when))) {
@@ -64,7 +65,7 @@ int main(int argc, char *argv[])
             break;
           default:
             publishMetrics();
-            when += Datetime::seconds(2);
+            when = Datetime::now() + interval;
         }
     }
 }
@@ -220,6 +221,9 @@ std::size_t select(const SEQUENCE_OF_EVENT&);  // e.g. std::vector<Event>
 
 template <std::size_t N>
 std::size_t select(const Event (&events)[N]);
+
+template <typename EVENT0>
+std::size_t select(EVENT0);
 
 template <typename EVENT0, typename EVENT1>
 std::size_t select(EVENT0, EVENT1);
