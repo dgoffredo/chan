@@ -15,26 +15,23 @@ So, this library wraps that up into a convenient abstraction: `class Chan`.
 
 What
 ====
-`cpp-channels` is a C++03 library in the form of a [BDE][BDE]-style package
-group, `cha`, whose main elements are:
+`cpp-channels` is a C++03 library whose main elements are:
 
-- `chan::Chan`: a class template representing either an unbuffered channel
-  of objects of a particular type, or a handle to a file (pipe, socket, etc.)
-- `chan::make`: a function for making `Chan`nels.
+- `chan::Chan`: a class template representing an unbuffered channel of objects
+  of a particular type.
 - `chan::select`: a function for performing exactly one operation from a set of
-  sends and/or received on `Chan`nels.
-- `chan::delay`: a function that returns a receive operation on a `Chan`nel
-  that is readable after a specified time interval.
-- `chan::deadline`: a function that returns a read operation on a `Chan`el that
-  is readable after a specified point in time.
+  sends and/or receives on `Chan`nels and reads/writes on files.
+- `chan::timeout`: TODO
 
 How
 ===
 Here's a program that reads `StockTick` objects from a library, publishes
 metrics every two seconds, and exits when any standard input is entered:
 ```C++
-#include <chan_chan.h>
-#include <chan_select.h>
+#include <chan/chan.h>
+#include <chan/select.h>
+#include <chan/files.h>
+#include <chan/time.h>
 #include <stock_exchange.h>
 #include <iostream>
 
@@ -45,28 +42,34 @@ void                  publishMetrics();                    // defined elsewhere
 int main(int argc, char *argv[])
 {
     using chan::select;
-    using chan::make; 
     using chan::deadline;
 
-    chan::Chan<>          input = make(0);  // from standard input
+    char                  buf[1];
+    chan::File            input = chan::standardInput();
     chan::Chan<StockTick> ticks = subscribe();
     StockTick             tick;
-    Datetime              when = Datetime::now() + Datetime::seconds(2);
+    const chan::Duration  metricsPeriod = chan::seconds(2);
+    chan::TimePoint       when = chan::now() + metricsPeriod;
 
     for (;;) {
-        switch(select(input.recv, ticks.recv(&tick), deadline(when))) {
-          case 0: {
+        switch(select(input.recv(&buf), ticks.recv(&tick), deadline(when))) {
+          case 0:
             std::cout << "Exiting due to caller input.\n";
             return 0;
-          }
           case 1:
             processStockTick(tick);
             break;
-          default:
+          case 2:
             publishMetrics();
-            when += Datetime::seconds(2);
+            when = chan::now() + metricsPeriod;
+            break;
+          default:
+            std::cerr << chan::lastError().what() << '\n';
+            return 1;
         }
     }
+
+    return 0;
 }
 ```
 
@@ -85,7 +88,7 @@ void lines(int                     file,  // non-blocking
     chan::Chan<>             input(file);
 
     for (;;) {
-        switch (chan::select(input.recv(buf, buffer.size()), done.recv)) {
+        switch (chan::select(input.recv(buf, buffer.size()), done.recv())) {
           case 0: {
               current.append(buf, input.count()));
               std::size_t pos = 0;
@@ -109,8 +112,8 @@ void lines(int                     file,  // non-blocking
 
 Finally, here's a plain old job-consuming worker; no `select` required:
 ```C++
-void worker(chan::Chan<std::function<Result()> jobs,
-            chan::Chan<Result>                 results)
+void worker(chan::Chan<std::function<Result()> > jobs,
+            chan::Chan<Result>                   results)
 {
     for (;;) {
         const std::function<Result()> job = jobs.recv();
@@ -220,6 +223,9 @@ std::size_t select(const SEQUENCE_OF_EVENT&);  // e.g. std::vector<Event>
 
 template <std::size_t N>
 std::size_t select(const Event (&events)[N]);
+
+template <typename EVENT0>
+std::size_t select(EVENT0);
 
 template <typename EVENT0, typename EVENT1>
 std::size_t select(EVENT0, EVENT1);

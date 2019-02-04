@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# If a directory name is provided as an argument, then setup the build there.
+# Otherwise, use $(pwd)/build/
+
+if [ ! -z "$1" ]; then
+    BUILD="$1"
+else
+    BUILD=build
+fi
+
+if [ -e "$BUILD" ]; then
+    >&2 echo "There's already a file at build directory \"$BUILD\""
+
+    while true; do
+        >&2 printf "Continue anyway? (y|N) "
+        read yn
+        case $yn in
+            [Yy]* ) break;;
+            * ) exit;;
+        esac
+    done
+else
+    mkdir "$BUILD"
+fi
+
+# Copy the directory structure of src/ into $BUILD/, and then create symlinks
+# to all of the sources and headers.
+rsync -r --include '*/' --exclude '*' src "$BUILD"
+find src/ -type f \( -name '*.h' -o -name '*.cpp' \) \
+          -exec /bin/sh -c "ln -f -s \$(readlink -f {}) \"$BUILD/{}\"" \;
+
+# Write a Makefile into $BUILD
+>"$BUILD/Makefile" cat <<END_MAKEFILE
+OBJECTS := \$(shell find . -name '*.cpp' | sed 's/cpp\$\$/o/')
+CXXFLAGS += -I src/
+CXXFLAGS += -Wall -Wextra -pedantic -Werror
+
+libchan.a: \$(OBJECTS)
+	ar rcs libchan.a \$(OBJECTS)
+END_MAKEFILE

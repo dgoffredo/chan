@@ -1,0 +1,52 @@
+digraph structs {
+    node [shape=record, fontsize=11];
+
+    root [label="{./|{chan.h|select.h|error.h|file.h}}"];
+    chan [label="{chan/|{chan}}"];
+    chanevents [label="{chanevents/|{chansend|chanrecv}}"];
+    chanstate [label="{chanstate/|{chanstate}}"];
+    fileevents [label="{fileevents/|{read|write}}"];
+    files [label="{files/|{pipepair|pipepool|file}}"];
+    select [label="{select/|{select|lasterror}}"];
+    errors [label="{errors/|{error|errors}}"];
+    threading [label="{threading/|{mutex|threadlocal|lockguard}}"];
+    event [label="{event/|{eventref|ioevent}}"];
+    macros [label="{macros/|{macros}}"];
+    time [label="{time/|{timepoint|duration|now}}"];
+    timeevents [label="{timeevents/|{timeout|deadline}}"];
+
+    root -> chan;
+    root -> errors;
+    root -> select;
+
+    chan -> chanevents;
+    chan -> chanstate;
+    chan -> select;
+
+    chanevents -> chanstate;
+    chanevents -> event;
+    chanevents -> errors;
+    
+    chanstate -> files;
+    chanstate -> threading;
+
+    fileevents -> files;
+    fileevents -> event;
+    fileevents -> errors;
+
+    files -> errors;
+    files -> threading;
+
+    select -> threading;
+    select -> errors;
+    select -> event;
+    select -> macros;
+
+    time -> errors;
+    
+    timeevents -> time;
+    timeevents -> event;
+    timeevents -> errors;
+
+    threading -> errors;
+}
