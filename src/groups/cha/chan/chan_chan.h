@@ -36,39 +36,25 @@ using namespace BloombergLP;
 //  template <typename OBJECT>
 //  class Chan {
 //    public:
-//      SendOperation send;
-//          // Invoke this member to send an object. It's analogous to this
-//          // overload set:
-//          //..
-//          //  SendEvent send(const OBJECT&);
-//          //  SendEvent send(bslmf::MovableReference<OBJECT>);
-//          //..
-//          // The destructor of the returned 'SendEvent' will block until the
-//          // send is successful. Alternatively, the 'SendEvent' can be used
-//          // as an argument to 'select'.
-//          // 
-//          // The 'SendOperation' itself, without having invoked it, can also
-//          // be used as an argument to 'select'. In this case, it represents
-//          // the event of this channel being ready to send without blocking.
+//      SendEvent send(const OBJECT&);
+//      SendEvent send(bslmf::MovableReference<OBJECT>);
+//          // Send an object. The destructor of the returned 'SendEvent' will
+//          // block until the send is successful. Alternatively, the
+//          // 'SendEvent' can be used as an argument to 'select'.
 //  
-//      RecvOperation recv;
-//          // Invoke this member to receive an object. It's analogous to this
-//          // overload set:
-//          //..
-//          //  RecvEvent recv(OBJECT&);
-//          //  OBJECT recv();
-//          //..
-//          // The destructor of the returned 'RecvEvent' will block until the
-//          // receive is successful. Alternatively, the 'RecvEvent' can be
-//          // used as an argument to 'select'. The third overload returns an
-//          // 'OBJECT' directly, and cannot be used in 'select'. It's
-//          //  equivalent to the following:
+//      RecvEvent recv(OBJECT&);
+//      OBJECT    recv();
+//          // Receive an object. The destructor of the returned 'RecvEvent'
+//          // will block until the receive is successful. Alternatively, the
+//          // 'RecvEvent' can be used as an argument to 'select'. The second
+//          // overload returns an 'OBJECT' directly, and cannot be used in
+//          // 'select'. It's equivalent to the following:
 //          //..
 //          //  template <typename OBJECT>
 //          //  OBJECT recvByValue(Chan<OBJECT>& channel)
 //          //  {
 //          //      OBJECT result;
-//          //      channel.recv(result, more);
+//          //      channel.recv(result);
 //          //      return result;
 //          //  }
 //          //..
@@ -76,22 +62,21 @@ using namespace BloombergLP;
 //..
 // Note that, unlike Go channels, a 'Chan' has no concept of being "closed."
 // Information about whether further values will be sent on a 'Chan' must be
-// communicated out of line (e.g. on another 'Chan' dedicated for this
-// purpose).
+// communicated in the messages themselves (e.g. using a 'bdlb::Variant') or
+// out of line (e.g. on another 'Chan' dedicated for this purpose).
 //
 ///The Event Concept
 ///-----------------
-// 'chan::select' fulfills exactly one from a set of "events." An event is any
-// object that satisfies the event concept. The event concept is a set of
-// invocable members.
+// 'chan::select' fulfills exactly one from a set of "events," its function
+// arguments. An event is any object that satisfies the event concept. The
+// event concept is a set of member functions.
 //
 // The default versions of the event methods assume that file descriptors will
 // be 'read' from:
 //..
 //  int file();
 //      // Return a file descriptor that can be read from as a synchronization
-//      // point that indicates when the event is ready to be fulfilled or
-//      // canceled.
+//      // point that indicates when the event is ready to be fulfilled.
 //
 //  int fulfill(int fileDescriptor);
 //      // Complete the event that began by reading from the specified
@@ -103,12 +88,12 @@ using namespace BloombergLP;
 //      // 'fileDescriptor'.
 //..
 // 'select' will alternatively use extended versions of 'file', 'fulfill', and
-// 'cancel' that allow for waiting on file operations other than 'read':
+// 'cancel' that allow for waiting on file operations other than 'read' (i.e.
+// 'write', 'accept', or 'connect').
 //..
 //  bsl::pair<int, btlso::EventType::Type> file();
 //      // Return a file descriptor on which to wait for the returned file
-//      // operation, which indicates when the event is ready to be fulfilled
-//      // or canceled.
+//      // operation, which indicates when the event is ready to be fulfilled.
 //
 //  bsl::pair<int, btlso::EventType::Type> fulfill(
 //          int                    fileDescriptor,
@@ -233,12 +218,11 @@ using namespace BloombergLP;
 //  using namespace chan::syntax;
 //  using chan::select;
 //
-//  switch (select(_ <-ch1, ch2 <- "hello", ch3 <- _, ch4 <- ch5)) {
-//    case 0: std::cout << "ch1 was available for receiving.\n";         break;
+//  switch (select(_ <-ch1, ch2 <- "hello", ch3 <- ch4)) {
+//    case 0: std::cout << "Received something from ch1.\n";             break;
 //    case 1: std::cout << "sent \"hello\" into ch2.\n";                 break;
-//    case 2: std::cout << "ch3 was available for sending.\n";           break;
-//    case 3: std::cout << "either sent ch5 into ch4 or received from "
-//                         "ch5, depending on the types.\n"              break;
+//    case 2: std::cout << "either sent ch4 into ch3 or received from "
+//                         "ch4, depending on the types.\n"              break;
 //  }
 //..
 // 'namespace chan::syntax' defines 'operator<' and 'operator-' templates,
@@ -248,8 +232,7 @@ using namespace BloombergLP;
 // realization of the receive syntax, since the token sequence '= <-' is not
 // valid in C++. Nonetheless, there is no ambiguity, due to the type system:
 //..
-//  1.  _ <-channel           is the same as  channel.recv
-//  2.  channel <- _          is the same as  channel.send
+//  1.  _ <-channel           is the same as  channel.recv(/*ignored*/)
 //  3.  value <- channel      is the same as  channel.recv(value)
 //  4.  channel <- value      is the same as  channel.send(value)
 //  5.  channel1 <- channel2  either channel2.recv(channel1) or
@@ -259,47 +242,6 @@ using namespace BloombergLP;
 // This is not as elegant as Go's syntax, but it's not a big deal since
 // whenver channels of channels are used, it is clear which channel is the
 // value and which is the communication mechanism.
-
-                        // ===================
-                        // class SendOperation
-                        // ===================
-
-template <typename OBJECT>
-class SendOperation {
-    // TODO
-
-    // DATA
-    bsl::shared_ptr<chai::ChanState<OBJECT> > d_state_sp;
-
-  public:
-    // CREATORS
-    explicit SendOperation(
-            const bsl::shared_ptr<chai::ChanState<OBJECT> >&  state)
-        // Create a 'SendOperation' object representing the capability of
-        // sending on a 'Chan' backed by the specified 'state'. The behavior
-        // is undefined if 'state' is null. Note that this object will use the
-        // same allocator that is used in the object referred to by 'state'.
-
-    int file();
-        // Return a file descriptor that can be read from as a synchronization
-        // point for performing a no-op send operations.
-
-    void fulfill(int fileDescriptor);
-        // Complete the no-op send operation that began by reading from the
-        // specified 'fileDescriptor'.
-
-    void cancel(int fileDescriptor);
-        // Cancel the no-op send operation that began by reading from the
-        // specified 'fileDescriptor'.
-
-    SendEvent<OBJECT> operator()(const OBJECT& object);
-        // Return an event whose fulfillment sends a copy of the specified
-        // 'object' through the channel associated with this object.
-
-    SendEvent<OBJECT> operator()(bslmf:MovableRef<OBJECT> object);
-        // Return an event whose fulfillment moves the specified 'object'
-        // through the channel associated with this object.
-};
 
                             // ==========
                             // class Chan
@@ -326,46 +268,9 @@ class Chan {
         // default allocator is used.
 
     // MANIPULATORS
-    SendOperation<OBJECT> send;
-        // Invoke this member to send an object. It's analogous to this
-        // overload set:
-        //..
-        //  SendEvent send(const OBJECT&);
-        //  SendEvent send(bslmf::MovableReference<OBJECT>);
-        //..
-        // The destructor of the returned 'SendEvent' will block until the send
-        // is successful. Alternatively, the 'SendEvent' can be used as an
-        // argument to 'select'.
-        // 
-        // The 'SendOperation' itself, without having invoked it, can also be
-        // used as an argument to 'select'. In this case, it represents the
-        // event of this channel being ready to send without blocking.
-
     SendEvent<OBJECT> send(const OBJECT&                   object);
     SendEvent<OBJECT> send(bslmf::MovableReference<OBJECT> object);
         // TODO
-
-    RecvOperation<OBJECT> recv;
-        // Invoke this member to receive an object. It's analogous to this
-        // overload set:
-        //..
-        //  RecvEvent recv(OBJECT&);
-        //  OBJECT recv();
-        //..
-        // The destructor of the returned 'RecvEvent' will block until the
-        // receive is successful. Alternatively, the 'RecvEvent' can be used as
-        // an argument to 'select'. The third overload returns an 'OBJECT'
-        // directly, and cannot be used in 'select'. It's equivalent to the
-        // following:
-        //..
-        //  template <typename OBJECT>
-        //  OBJECT recvByValue(Chan<OBJECT>& channel)
-        //  {
-        //      OBJECT result;
-        //      channel.recv(result, more);
-        //      return result;
-        //  }
-        //..
 
     RecvEvent recv(OBJECT& destination);
     OBJECT    recv();

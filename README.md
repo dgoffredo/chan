@@ -86,7 +86,7 @@ void lines(int                     file,  // non-blocking
     chan::Chan<>             input(file);
 
     for (;;) {
-        switch (chan::select(input.recv(buf, buffer.size()), done.recv)) {
+        switch (chan::select(input.recv(buf, buffer.size()), done.recv())) {
           case 0: {
               current.append(buf, input.count()));
               std::size_t pos = 0;

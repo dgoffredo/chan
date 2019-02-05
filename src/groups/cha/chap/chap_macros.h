@@ -1,0 +1,91 @@
+#ifndef INCLUDED_CHAP_MACROS
+#define INCLUDED_CHAP_MACROS
+
+// This header contains preprocessor macros used to generate code elsewhere in
+// this package group. The maximum argument list length supported by these
+// macros is currently nine.
+
+//     CHAP_SEQ(N)
+//
+// expands to
+//
+//     1, 2, 3, ..., N
+#define CHAP_SEQ1 1
+#define CHAP_SEQ2 CHAP_SEQ1, 2
+#define CHAP_SEQ3 CHAP_SEQ2, 3
+#define CHAP_SEQ4 CHAP_SEQ3, 4
+#define CHAP_SEQ5 CHAP_SEQ4, 5
+#define CHAP_SEQ6 CHAP_SEQ5, 6
+#define CHAP_SEQ7 CHAP_SEQ6, 7
+#define CHAP_SEQ8 CHAP_SEQ7, 8
+#define CHAP_SEQ9 CHAP_SEQ8, 9
+
+#define CHAP_SEQ_(N) CHAP_SEQ##N
+#define CHAP_SEQ(N) CHAP_SEQ_(N)
+
+//     CHAP_LENGTH(1, 2, 3, ..., N)
+//
+// expands to
+//
+//     N
+#define CHAP_LENGTH_(A9, A8, A7, A6, A5, A4, A3, A2, A1, LENGTH, ...) LENGTH
+#define CHAP_LENGTH(...) CHAP_LENGTH_(__VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+
+#define CHAP_FIRST(FIRST, ...) FIRST
+#define CHAP_REST(FIRST, ...) (__VA_ARGS__)
+
+//     CHAP_MAP(MACRO, (a, b, ..., last))
+//
+// expands to
+//
+//     MACRO(a), MACRO(b), ..., MACRO(last)
+#define CHAP_MAP1(MACRO, LIST) MACRO(CHAP_FIRST(LIST))
+#define CHAP_MAP2(MACRO, LIST) \
+    MACRO(CHAP_FIRST(LIST)), CHAP_MAP1(MACRO, CHAP_REST(LIST))
+#define CHAP_MAP3(MACRO, LIST) \
+    MACRO(CHAP_FIRST(LIST)), CHAP_MAP2(MACRO, CHAP_REST(LIST))
+#define CHAP_MAP4(MACRO, LIST) \
+    MACRO(CHAP_FIRST(LIST)), CHAP_MAP3(MACRO, CHAP_REST(LIST))
+#define CHAP_MAP5(MACRO, LIST) \
+    MACRO(CHAP_FIRST(LIST)), CHAP_MAP4(MACRO, CHAP_REST(LIST))
+#define CHAP_MAP6(MACRO, LIST) \
+    MACRO(CHAP_FIRST(LIST)), CHAP_MAP5(MACRO, CHAP_REST(LIST))
+#define CHAP_MAP7(MACRO, LIST) \
+    MACRO(CHAP_FIRST(LIST)), CHAP_MAP6(MACRO, CHAP_REST(LIST))
+#define CHAP_MAP8(MACRO, LIST) \
+    MACRO(CHAP_FIRST(LIST)), CHAP_MAP7(MACRO, CHAP_REST(LIST))
+#define CHAP_MAP9(MACRO, LIST) \
+    MACRO(CHAP_FIRST(LIST)), CHAP_MAP8(MACRO, CHAP_REST(LIST))
+
+#define CHAP_MAP__(N, MACRO, LIST) CHAP_MAP##N(MACRO, LIST)
+#define CHAP_MAP_(N, MACRO, LIST)  CHAP_MAP__(N, MACRO, LIST)
+#define CHAP_MAP(MACRO, LIST)      CHAP_MAP_(CHAP_LENGTH(LIST), MACRO, LIST)
+
+//     CHAP_JOIN(SEP, (foo, bar, ..., baz))
+//
+// expands to
+//
+//     foo SEP bar SEP ... SEP baz
+#define CHAP_JOIN1(SEP, LIST) CHAP_FIRST(LIST)
+#define CHAP_JOIN2(SEP, LIST) \
+    CHAP_FIRST(LIST) SEP CHAP_JOIN1(SEP, CHAP_REST(LIST))
+#define CHAP_JOIN3(SEP, LIST) \
+    CHAP_FIRST(LIST) SEP CHAP_JOIN2(SEP, CHAP_REST(LIST))
+#define CHAP_JOIN4(SEP, LIST) \
+    CHAP_FIRST(LIST) SEP CHAP_JOIN3(SEP, CHAP_REST(LIST))
+#define CHAP_JOIN5(SEP, LIST) \
+    CHAP_FIRST(LIST) SEP CHAP_JOIN4(SEP, CHAP_REST(LIST))
+#define CHAP_JOIN6(SEP, LIST) \
+    CHAP_FIRST(LIST) SEP CHAP_JOIN5(SEP, CHAP_REST(LIST))
+#define CHAP_JOIN7(SEP, LIST) \
+    CHAP_FIRST(LIST) SEP CHAP_JOIN6(SEP, CHAP_REST(LIST))
+#define CHAP_JOIN8(SEP, LIST) \
+    CHAP_FIRST(LIST) SEP CHAP_JOIN7(SEP, CHAP_REST(LIST))
+#define CHAP_JOIN9(SEP, LIST) \
+    CHAP_FIRST(LIST) SEP CHAP_JOIN8(SEP, CHAP_REST(LIST))
+
+#define CHAP_JOIN__(N, SEP, LIST) CHAP_JOIN##N(SEP, LIST)
+#define CHAP_JOIN_(N, SEP, LIST)  CHAP_JOIN__(N, SEP, LIST)
+#define CHAP_JOIN(SEP, LIST)      CHAP_JOIN_(CHAP_LENGTH(LIST), SEP, LIST)
+
+#endif
