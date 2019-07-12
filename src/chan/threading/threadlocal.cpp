@@ -24,6 +24,14 @@ ThreadLocalImpl::ThreadLocalImpl(void (*deleteObject)(void*))
     }
 }
 
+ThreadLocalImpl::~ThreadLocalImpl()
+{
+    assert(key);
+
+    pthread_key_delete(key->key);
+    delete key;
+}
+
 void *ThreadLocalImpl::get()
 {
     assert(key);

@@ -57,6 +57,8 @@ class ThreadLocalImpl {
   public:
     explicit ThreadLocalImpl(void (*deleter)(void*));
 
+    ~ThreadLocalImpl();
+
     void *get();
 
     void set(void *newValue);
