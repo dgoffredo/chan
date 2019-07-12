@@ -51,9 +51,6 @@ class ThreadLocalImpl {
     void               (*deleter)(void*);
     ThreadLocalImplKey  *key;
 
-    template <typename VALUE>
-    static void genericDeleter(void *object);
-
   public:
     explicit ThreadLocalImpl(void (*deleter)(void*));
 
@@ -64,6 +61,9 @@ class ThreadLocalImpl {
     void set(void *newValue);
 
     void reset();
+
+    template <typename VALUE>
+    static void genericDeleter(void *object);
 };
 
 template <typename VALUE>
@@ -117,7 +117,7 @@ bool ThreadLocal<VALUE, DERIVED>::hasValue()
 template <typename VALUE, typename DERIVED>
 VALUE& ThreadLocal<VALUE, DERIVED>::value()
 {
-    VALUE *ptr = impl.get();
+    VALUE *ptr = static_cast<VALUE*>(impl.get());
     assert(ptr);
     return *ptr;
 }
@@ -125,7 +125,7 @@ VALUE& ThreadLocal<VALUE, DERIVED>::value()
 template <typename VALUE, typename DERIVED>
 void ThreadLocal<VALUE, DERIVED>::setValue(const VALUE& newValue)
 {
-    if (VALUE *ptr = impl.get()) {
+    if (VALUE *ptr = static_cast<VALUE*>(impl.get())) {
         *ptr = newValue;
     }
     else {
