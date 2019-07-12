@@ -1,0 +1,63 @@
+
+void doThing(Chan<Out> out, Chan<> exit, const std::string& pipeName) {
+    File    pipe(pipeName);
+    Storage buffer(1024);
+
+    for (;;) {
+        switch (select(exit.recv(),  pipe.read(buffer))) {
+          case 0:
+            return;
+          case 1:
+            if (TODO) {
+                Out value = TODO;
+                switch (exit.recv(), out.send(&value)) {
+                  case 0:
+                    return;
+                }
+            }
+        }
+    }
+}
+
+struct IoEvent {
+    enum EventType { READ, WRITE, HANGUP, TIMEOUT };
+        // 'TIMEOUT' must not be combined with any other flag.
+
+    int event;  // bitfield of above flags
+
+    union {
+        int    file;  // descriptor
+        double seconds;
+    };
+};
+
+file -1 => complete
+file -2 => ignore
+any other file >= 0 => replace in poll()
+any other int <= -3 => error (throw or return as rcode)
+
+How can I do a state machine?
+
+State        Event        Action        Next
+-----        -----        ------        ----
+start        alone        sit           sitting
+start        paired       visit         visiting
+sitting      "hi"         ready         ready
+sitting      "poke"       restart       start
+sitting      cancel       cancel
+ready        "done"       cleanup
+ready        "error"      cleanup
+ready        "cancel"     restart       start
+visiting     "ready"      transfer      transferring  
+visiting     "cancel"     restart       start
+visiting     cancel       cancel
+
+This would look better as a graph.
+Can we use clang to extract enough information from
+source to generate one?
+
+
+
+
+
+
