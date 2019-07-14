@@ -6,9 +6,9 @@
 //
 //     IoEvent file();
 //
-//     IoEvent fulfill(const IoEvent&);
+//     IoEvent fulfill(IoEvent);
 //
-//     void cancel(const IoEvent&);
+//     void cancel(IoEvent);
 //
 // See this package's `README.md` file for an explanation of each of these
 // member functions.
@@ -34,8 +34,8 @@ namespace chan {
 
 struct EventRefVtable {
     IoEvent (*file)(void* instance);
-    IoEvent (*fulfill)(void* instance, const IoEvent&);
-    void (*cancel)(void* instance, const IoEvent&);
+    IoEvent (*fulfill)(void* instance, IoEvent);
+    void (*cancel)(void* instance, IoEvent);
 };
 
 template <typename EVENT>
@@ -44,11 +44,11 @@ struct EventRefVtableImpl {
         return ref(instance).file();
     }
 
-    static IoEvent fulfill(void* instance, const IoEvent& ioEvent) {
+    static IoEvent fulfill(void* instance, IoEvent ioEvent) {
         return ref(instance).fulfill(ioEvent);
     }
 
-    static void cancel(void* instance, const IoEvent& ioEvent) {
+    static void cancel(void* instance, IoEvent ioEvent) {
         ref(instance).cancel(ioEvent);
     }
 
@@ -83,11 +83,11 @@ class EventRef {
         return d_vtable_p->file(d_instance_p);
     }
 
-    IoEvent fulfill(const IoEvent& ioEvent) {
+    IoEvent fulfill(IoEvent ioEvent) {
         return d_vtable_p->fulfill(d_instance_p, ioEvent);
     }
 
-    void cancel(const IoEvent& ioEvent) {
+    void cancel(IoEvent ioEvent) {
         return d_vtable_p->cancel(d_instance_p, ioEvent);
     }
 };

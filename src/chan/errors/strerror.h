@@ -16,7 +16,7 @@
 // component, so that `-W-unused-function` does not complain.
 //
 // I should also mention why I didn't just use the portable `strerror_l`
-// function instead.  The reason is that the prospect creating a locale and
+// function instead.  The reason is that the prospect of creating a locale and
 // setting it up just right seemed trickier than overloading a function.
 
 #include <cstddef>  // std::size_t
