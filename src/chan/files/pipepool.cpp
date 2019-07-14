@@ -9,12 +9,10 @@
 
 #include <fcntl.h>      // fcntl()
 #include <sys/types.h>  // suggested for use with fcntl()
-#include <unistd.h>     // pipe(), sysconf()
+#include <unistd.h>     // pipe()
 
 namespace chan {
 namespace {
-
-const long k_PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
 
 bool available(const PipePair& pipes) {
     const bool result = pipes.toVisitor > 0 && pipes.fromSitter > 0;

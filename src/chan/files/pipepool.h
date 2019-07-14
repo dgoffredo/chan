@@ -22,6 +22,8 @@ class PipePool {
     Mutex                 d_mutex;
     std::vector<PipePair> d_pipes;
 
+    PipePool(const PipePool&) /* = delete */;
+
   public:
     ~PipePool();
 

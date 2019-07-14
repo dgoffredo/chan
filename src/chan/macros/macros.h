@@ -4,6 +4,7 @@
 // This header contains preprocessor macros used to generate code elsewhere in
 // this library. The maximum argument list length supported by these macros is
 // currently nine.
+#define CHAN_MAX_ARITY 9
 
 //     CHAN_LENGTH(1, 2, 3, ..., N)
 //
@@ -11,7 +12,8 @@
 //
 //     N
 #define CHAN_LENGTH_(A9, A8, A7, A6, A5, A4, A3, A2, A1, LENGTH, ...) LENGTH
-#define CHAN_LENGTH(...)                                              CHAN_LENGTH_(__VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+#define CHAN_LENGTH(...) \
+    CHAN_LENGTH_(__VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, dummy)
 
 //     CHAN_CAT(LEFT, RIGHT)
 //
@@ -31,7 +33,7 @@
 #define CHAN_CAT8(HEAD, ...)      CHAN_CAT2(HEAD, CHAN_CAT7(__VA_ARGS__))
 #define CHAN_CAT9(HEAD, ...)      CHAN_CAT2(HEAD, CHAN_CAT8(__VA_ARGS__))
 
-#define CHAN_CAT_(N, ...) CHAN_CAT2(CHAN_CAT, N)(__VA_ARGS__)
+#define CHAN_CAT_(N, ...) CHAN_CAT_RAW(CHAN_CAT, N)(__VA_ARGS__)
 #define CHAN_CAT(...)     CHAN_CAT_(CHAN_LENGTH(__VA_ARGS__), __VA_ARGS__)
 
 //     CHAN_SEQ(N)
@@ -51,8 +53,20 @@
 
 #define CHAN_SEQ(N) CHAN_CAT(CHAN_SEQ, N)
 
-#define CHAN_FIRST(FIRST, ...) FIRST
-#define CHAN_REST(FIRST, ...)  (__VA_ARGS__)
+#define CHAN_FIRST_N(FIRST, ...) FIRST
+#define CHAN_FIRST9              CHAN_FIRST_N
+#define CHAN_FIRST8              CHAN_FIRST_N
+#define CHAN_FIRST7              CHAN_FIRST_N
+#define CHAN_FIRST6              CHAN_FIRST_N
+#define CHAN_FIRST5              CHAN_FIRST_N
+#define CHAN_FIRST4              CHAN_FIRST_N
+#define CHAN_FIRST3              CHAN_FIRST_N
+#define CHAN_FIRST2              CHAN_FIRST_N
+#define CHAN_FIRST1(FIRST)       FIRST
+#define CHAN_FIRST_(N, ...)      CHAN_CAT(CHAN_FIRST, N)(__VA_ARGS__)
+#define CHAN_FIRST(...)          CHAN_FIRST_(CHAN_LENGTH(__VA_ARGS__), __VA_ARGS__)
+
+#define CHAN_REST(FIRST, ...) (__VA_ARGS__)
 
 //     CHAN_MAP(MACRO, (a, b, ..., last))
 //
