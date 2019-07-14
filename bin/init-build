@@ -17,7 +17,9 @@ if [ -e "$BUILD" ]; then
         read yn
         case $yn in
             [Yy]* ) break;;
-            * ) exit;;
+            [Nn]* ) exit;;
+            "" ) exit;;
+            * ) >&2 echo "Yes or no?";;
         esac
     done
 else
@@ -30,12 +32,6 @@ rsync -r --include '*/' --exclude '*' src "$BUILD"
 find src/ -type f \( -name '*.h' -o -name '*.cpp' \) \
           -exec /bin/sh -c "ln -f -s \$(readlink -f {}) \"$BUILD/{}\"" \;
 
-# Write a Makefile into $BUILD
->"$BUILD/Makefile" cat <<END_MAKEFILE
-OBJECTS := \$(shell find . -name '*.cpp' | sed 's/cpp\$\$/o/')
-CXXFLAGS += -I src/
-CXXFLAGS += -Wall -Wextra -pedantic -Werror
-
-libchan.a: \$(OBJECTS)
-	ar rcs libchan.a \$(OBJECTS)
-END_MAKEFILE
+# Copy a Makefile into $BUILD
+template=$(dirname $0)/template.mk
+cp $template "$BUILD/Makefile" 
