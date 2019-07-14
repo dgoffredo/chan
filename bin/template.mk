@@ -1,3 +1,5 @@
+BUILD_TYPE ?= Release
+
 SOURCES := $(shell find . -name '*.cpp')
 OBJECTS := $(SOURCES:.cpp=.o)
 
@@ -6,6 +8,9 @@ OBJECTS := $(SOURCES:.cpp=.o)
 # CXX -> C++ compiler.  Except when they don't (e.g. `.cpp` files are for the
 # C++ compiler, though only after having gone through the C pre-processor...).
 CPPFLAGS += -I src/
+ifeq ($(BUILD_TYPE), Release)
+     CPPFLAGS += -DNDEBUG
+endif
 
 # Variadic macros (e.g. `#define FOO(a, b, ...)`) are technically not part of
 # C++98, but since every C++98/03 compiler I've seen in the last 20 years
@@ -14,8 +19,13 @@ CPPFLAGS += -I src/
 # any compiler I know of (including Solaris CC and IBM xlc++ -- VC6 doesn't
 # count because it's Windows).
 WARNINGFLAGS += -Wall -Wextra -pedantic -Werror -Wno-variadic-macros
-OPTIMIZATIONFLAGS += -O3 -flto
-CXXFLAGS += $(WARNINGFLAGS) $(OPTIMIZATIONFLAGS)
+ifeq ($(BUILD_TYPE), Release)
+    OPTIMIZATIONFLAGS += -O3 -flto
+else
+    OPTIMIZATIONFLAGS += -Og
+endif
+DEBUGFLAGS += -g
+CXXFLAGS += $(WARNINGFLAGS) $(OPTIMIZATIONFLAGS) $(DEBUGFLAGS)
 
 # Put the `.o` files into one `.a` file.  The rule by which the `.o` files are
 # made is assumed by `make`, and so does not appear in this makefile.

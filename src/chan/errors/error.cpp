@@ -1,4 +1,5 @@
 #include <chan/errors/error.h>
+#include <chan/errors/strerror.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -57,7 +58,7 @@ Error::Error(const ErrorCode& code, int systemErrno)
     size -= offset2;
     assert(size >= 0);
 
-    strerror_r(systemErrno, output, size);
+    strError(&strerror_r, systemErrno, output, size);
 }
 
 Error::Error(const char *message)
