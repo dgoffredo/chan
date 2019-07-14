@@ -24,6 +24,8 @@ class TimePoint {
             (left.milliseconds - right.milliseconds));
     }
 
+    friend TimePoint now();
+
   public:
     // A default constructed `TimePoint` represents an unspecified point of
     // time in the past, no earlier than when the current system last booted
@@ -58,6 +60,11 @@ class TimePoint {
         return *this += -duration;
     }
 };
+
+// Return the current time according to some monotonic steady clock.  Note that
+// values returned by this function are intended to be used to calculate
+// deadlines and timeouts for use with `chan::select`.
+TimePoint now();
 
 inline TimePoint operator+(TimePoint point, Duration duration)
 {

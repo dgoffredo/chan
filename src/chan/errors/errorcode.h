@@ -22,7 +22,8 @@ class ErrorCode {
         MUTEX_UNLOCK = -9,
         SET_THREADLOCAL = -10,
         CREATE_THREADLOCAL = -11,
-        CLEAR_THREADLOCAL = -12
+        CLEAR_THREADLOCAL = -12,
+        CURRENT_TIME = -13
     };
 
   private:

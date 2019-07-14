@@ -50,7 +50,7 @@ Error::Error(const ErrorCode& code, int systemErrno)
 
     const int offset2 = snprintf(output, size, " System error: ");
     if (offset2 < 0) {
-        // We won't have the `strerror` appended to this message, oh well.
+        // We won't have the `strError` appended to this message, oh well.
         return;
     }
 

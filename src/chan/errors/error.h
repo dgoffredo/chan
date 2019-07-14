@@ -14,8 +14,17 @@ class Error : public std::exception {
     char      msg[1024];
 
   public:
-    explicit Error(const ErrorCode&);
+    // Populate `code()` and `what()` based on the specified `errorCode`, and
+    // populate `systemErrno()` with -1, indicating N/A.
+    explicit Error(const ErrorCode& errorCode);
+
+    // Populate `code()` and `what()` based on the specified `errorCode`, and
+    // populate `systemErrno()` with the specified `systemErrno`.
     Error(const ErrorCode& code, int systemErrno);
+
+    // Populate `code()` with `ErrorCode::OTHER`, `what()` with a copy of the
+    // specified null-terminated `message`, and populate `systemErrno()` with
+    // -1, indicating N/A.
     explicit Error(const char *message);
 
     ErrorCode code() const CHAN_NOEXCEPT;

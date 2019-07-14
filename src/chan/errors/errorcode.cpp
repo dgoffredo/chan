@@ -41,7 +41,10 @@ const char *const messages[] = {
     "Unable to create a key for a thread-local variable.",
 
     // CLEAR_THREADLOCAL
-    "Unable to clear the value of a thread-local variable."
+    "Unable to clear the value of a thread-local variable.",
+
+    // CURRENT_TIME
+    "Unable to get the current time on the monotonic clock."
 };
 
 }  // unnamed namespace

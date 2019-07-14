@@ -5,6 +5,14 @@
 // this library. The maximum argument list length supported by these macros is
 // currently nine.
 
+//     CHAN_LENGTH(1, 2, 3, ..., N)
+//
+// expands to
+//
+//     N
+#define CHAN_LENGTH_(A9, A8, A7, A6, A5, A4, A3, A2, A1, LENGTH, ...) LENGTH
+#define CHAN_LENGTH(...) CHAN_LENGTH_(__VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+
 //     CHAN_CAT(LEFT, RIGHT)
 //
 // expands to
@@ -12,9 +20,19 @@
 //    LEFTRIGHT
 //
 // However, if either of LEFT or RIGHT is a macro invocation, then it will be
-// expanded before pasting.
-#define CHAN_CAT_(LEFT, RIGHT) LEFT##RIGHT
-#define CHAN_CAT(LEFT, RIGHT) CHAN_CAT_(LEFT, RIGHT)
+// expanded before pasting.  CHAN_CAT can also take more than two arguments.
+#define CHAN_CAT_RAW(LEFT, RIGHT) LEFT##RIGHT
+#define CHAN_CAT2(HEAD, ...) CHAN_CAT_RAW(HEAD, __VA_ARGS__)
+#define CHAN_CAT3(HEAD, ...) CHAN_CAT2(HEAD, CHAN_CAT2(__VA_ARGS__))
+#define CHAN_CAT4(HEAD, ...) CHAN_CAT2(HEAD, CHAN_CAT3(__VA_ARGS__))
+#define CHAN_CAT5(HEAD, ...) CHAN_CAT2(HEAD, CHAN_CAT4(__VA_ARGS__))
+#define CHAN_CAT6(HEAD, ...) CHAN_CAT2(HEAD, CHAN_CAT5(__VA_ARGS__))
+#define CHAN_CAT7(HEAD, ...) CHAN_CAT2(HEAD, CHAN_CAT6(__VA_ARGS__))
+#define CHAN_CAT8(HEAD, ...) CHAN_CAT2(HEAD, CHAN_CAT7(__VA_ARGS__))
+#define CHAN_CAT9(HEAD, ...) CHAN_CAT2(HEAD, CHAN_CAT8(__VA_ARGS__))
+
+#define CHAN_CAT_(N, ...) CHAN_CAT2(CHAN_CAT, N)(__VA_ARGS__)
+#define CHAN_CAT(...)     CHAN_CAT_(CHAN_LENGTH(__VA_ARGS__), __VA_ARGS__)
 
 //     CHAN_SEQ(N)
 //
@@ -32,14 +50,6 @@
 #define CHAN_SEQ9 CHAN_SEQ8, 9
 
 #define CHAN_SEQ(N) CHAN_CAT(CHAN_SEQ, N)
-
-//     CHAN_LENGTH(1, 2, 3, ..., N)
-//
-// expands to
-//
-//     N
-#define CHAN_LENGTH_(A9, A8, A7, A6, A5, A4, A3, A2, A1, LENGTH, ...) LENGTH
-#define CHAN_LENGTH(...) CHAN_LENGTH_(__VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1)
 
 #define CHAN_FIRST(FIRST, ...) FIRST
 #define CHAN_REST(FIRST, ...) (__VA_ARGS__)
@@ -97,4 +107,3 @@
 #define CHAN_MAPP(MACRO, LIST) CHAN_MAPP_(CHAN_LENGTH LIST, MACRO, LIST)
 
 #endif
-
