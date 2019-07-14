@@ -40,7 +40,9 @@ struct EventRefVtable {
 
 template <typename EVENT>
 struct EventRefVtableImpl {
-    static IoEvent file(void* instance) { return ref(instance).file(); }
+    static IoEvent file(void* instance) {
+        return ref(instance).file();
+    }
 
     static IoEvent fulfill(void* instance, const IoEvent& ioEvent) {
         return ref(instance).fulfill(ioEvent);
@@ -61,8 +63,10 @@ struct EventRefVtableImpl {
 
 template <typename EVENT>
 const EventRefVtable EventRefVtableImpl<EVENT>::vtable = {
-    &EventRefVtableImpl<EVENT>::file, &EventRefVtableImpl<EVENT>::fulfill,
-    &EventRefVtableImpl<EVENT>::cancel};
+    &EventRefVtableImpl<EVENT>::file,
+    &EventRefVtableImpl<EVENT>::fulfill,
+    &EventRefVtableImpl<EVENT>::cancel
+};
 
 class EventRef {
     void*                 d_instance_p;
@@ -71,10 +75,13 @@ class EventRef {
   public:
     template <typename EVENT>
     EventRef(EVENT& event)
-        : d_instance_p(&event),
-          d_vtable_p(&EventRefVtableImpl<EVENT>::vtable) {}
+    : d_instance_p(&event)
+    , d_vtable_p(&EventRefVtableImpl<EVENT>::vtable) {
+    }
 
-    IoEvent file() { return d_vtable_p->file(d_instance_p); }
+    IoEvent file() {
+        return d_vtable_p->file(d_instance_p);
+    }
 
     IoEvent fulfill(const IoEvent& ioEvent) {
         return d_vtable_p->fulfill(d_instance_p, ioEvent);

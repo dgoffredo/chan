@@ -15,7 +15,7 @@
 //
 //     void setError(const std::string& message) {
 //         LastError::setValue(message);
-//     }    
+//     }
 //
 //     void clearError() {
 //         if (!LastError::hasValue()) {
@@ -32,7 +32,7 @@
 //         if (!LastError::hasValue() || LastError::value().empty()) {
 //             // Either no error has been set, or it has since been cleared.
 //         }
-// 
+//
 //         std::cerr << "Error occurred: " << LastError::value() << "\n";
 //     }
 //
@@ -48,27 +48,26 @@ struct ThreadLocalImplKey;
 
 // This component-private class manages a type-agnostic thread local value.
 class ThreadLocalImpl {
-    void               (*deleter)(void*);
-    ThreadLocalImplKey  *key;
+    void (*deleter)(void*);
+    ThreadLocalImplKey* key;
 
   public:
     explicit ThreadLocalImpl(void (*deleter)(void*));
 
     ~ThreadLocalImpl();
 
-    void *get();
+    void* get();
 
-    void set(void *newValue);
+    void set(void* newValue);
 
     void reset();
 
     template <typename VALUE>
-    static void genericDeleter(void *object);
+    static void genericDeleter(void* object);
 };
 
 template <typename VALUE>
-void ThreadLocalImpl::genericDeleter(void *object)
-{
+void ThreadLocalImpl::genericDeleter(void* object) {
     assert(object);
     delete static_cast<VALUE*>(object);
 }
@@ -105,27 +104,24 @@ class ThreadLocal {
 };
 
 template <typename VALUE, typename DERIVED>
-ThreadLocalImpl
-ThreadLocal<VALUE, DERIVED>::impl(&ThreadLocalImpl::genericDeleter<VALUE>);
+ThreadLocalImpl ThreadLocal<VALUE, DERIVED>::impl(
+    &ThreadLocalImpl::genericDeleter<VALUE>);
 
 template <typename VALUE, typename DERIVED>
-bool ThreadLocal<VALUE, DERIVED>::hasValue()
-{
+bool ThreadLocal<VALUE, DERIVED>::hasValue() {
     return impl.get();
 }
 
 template <typename VALUE, typename DERIVED>
-VALUE& ThreadLocal<VALUE, DERIVED>::value()
-{
-    VALUE *ptr = static_cast<VALUE*>(impl.get());
+VALUE& ThreadLocal<VALUE, DERIVED>::value() {
+    VALUE* ptr = static_cast<VALUE*>(impl.get());
     assert(ptr);
     return *ptr;
 }
 
 template <typename VALUE, typename DERIVED>
-void ThreadLocal<VALUE, DERIVED>::setValue(const VALUE& newValue)
-{
-    if (VALUE *ptr = static_cast<VALUE*>(impl.get())) {
+void ThreadLocal<VALUE, DERIVED>::setValue(const VALUE& newValue) {
+    if (VALUE* ptr = static_cast<VALUE*>(impl.get())) {
         *ptr = newValue;
     }
     else {
@@ -134,8 +130,7 @@ void ThreadLocal<VALUE, DERIVED>::setValue(const VALUE& newValue)
 }
 
 template <typename VALUE, typename DERIVED>
-void ThreadLocal<VALUE, DERIVED>::reset()
-{
+void ThreadLocal<VALUE, DERIVED>::reset() {
     impl.reset();
 }
 

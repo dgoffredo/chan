@@ -1,8 +1,8 @@
 #ifndef INCLUDED_CHAN_FILES_PIPEPOOL
 #define INCLUDED_CHAN_FILES_PIPEPOOL
 
-#include <chan/threading/mutex.h>
 #include <chan/files/pipepair.h>
+#include <chan/threading/mutex.h>
 
 #include <vector>
 

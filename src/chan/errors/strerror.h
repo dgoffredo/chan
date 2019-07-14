@@ -23,15 +23,15 @@
 
 namespace chan {
 
-int strError(int         (*impl)(int, char*, size_t),
-             int           error,
-             char         *buffer,
-             std::size_t   bufferLength);
+int strError(int (*impl)(int, char*, size_t),
+             int         error,
+             char*       buffer,
+             std::size_t bufferLength);
 
-int strError(char        *(*impl)(int, char*, size_t),
-             int            error,
-             char          *buffer,
-             std::size_t    bufferLength);
+int strError(char* (*impl)(int, char*, size_t),
+             int         error,
+             char*       buffer,
+             std::size_t bufferLength);
 
 }  // namespace chan
 

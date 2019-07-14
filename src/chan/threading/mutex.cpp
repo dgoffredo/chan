@@ -23,14 +23,22 @@ class MutexImpl {
         }
     }
 
-    int lock() { return pthread_mutex_lock(&d_mutex); }
+    int lock() {
+        return pthread_mutex_lock(&d_mutex);
+    }
 
-    int unlock() { return pthread_mutex_unlock(&d_mutex); }
+    int unlock() {
+        return pthread_mutex_unlock(&d_mutex);
+    }
 };
 
-Mutex::Mutex() : d_impl_p(new MutexImpl) {}
+Mutex::Mutex()
+: d_impl_p(new MutexImpl) {
+}
 
-Mutex::~Mutex() { delete d_impl_p; }
+Mutex::~Mutex() {
+    delete d_impl_p;
+}
 
 void Mutex::lock() {
     if (const int rcode = d_impl_p->lock()) {

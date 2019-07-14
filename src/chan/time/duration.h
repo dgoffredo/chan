@@ -11,8 +11,8 @@ class Duration {
     // This constructor is private.  To create `Duration` objects, use the
     // `seconds` and `milliseconds` functions.
     explicit Duration(long ms)
-    : milliseconds(ms)
-    {}
+    : milliseconds(ms) {
+    }
 
     friend Duration seconds(long quantity);
     friend Duration milliseconds(long quantity);
@@ -25,10 +25,10 @@ class Duration {
         return left.milliseconds / right.milliseconds;
     }
 
-    #define CHAN_DEFINE_COMPARISON(OP)                            \
-        friend bool operator OP (Duration left, Duration right) { \
-            return left.milliseconds OP right.milliseconds;       \
-        }
+#define CHAN_DEFINE_COMPARISON(OP)                           \
+    friend bool operator OP(Duration left, Duration right) { \
+        return left.milliseconds OP right.milliseconds;      \
+    }
 
     CHAN_DEFINE_COMPARISON(<)
     CHAN_DEFINE_COMPARISON(<=)
@@ -37,14 +37,14 @@ class Duration {
     CHAN_DEFINE_COMPARISON(==)
     CHAN_DEFINE_COMPARISON(!=)
 
-    #undef CHAN_DEFINE_COMPARISON
+#undef CHAN_DEFINE_COMPARISON
 
   public:
     // A default constructed `Duration` represents a zero (empty) duration of
     // time.
     Duration()
-    : milliseconds()
-    {}
+    : milliseconds() {
+    }
 
     Duration& operator+=(Duration other) {
         milliseconds += other.milliseconds;

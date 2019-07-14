@@ -9,7 +9,7 @@ namespace chan {
 
 class Error;
 
-// Return a copy of the `Error` most recently recorded by this library on the
+// Return a copy of the `Error` most recently recorded by `select` on the
 // current thread. If there have not yet been any errors, then return an
 // `Error` indicating so.
 Error lastError();

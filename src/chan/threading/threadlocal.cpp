@@ -1,7 +1,7 @@
 
-#include <chan/threading/threadlocal.h>
 #include <chan/errors/error.h>
 #include <chan/errors/errorcode.h>
+#include <chan/threading/threadlocal.h>
 
 #include <pthread.h>
 
@@ -15,8 +15,7 @@ struct ThreadLocalImplKey {
 
 ThreadLocalImpl::ThreadLocalImpl(void (*deleteObject)(void*))
 : deleter(deleteObject)
-, key(new ThreadLocalImplKey)
-{
+, key(new ThreadLocalImplKey) {
     assert(key);
 
     if (const int rc = pthread_key_create(&key->key, deleter)) {
@@ -24,25 +23,22 @@ ThreadLocalImpl::ThreadLocalImpl(void (*deleteObject)(void*))
     }
 }
 
-ThreadLocalImpl::~ThreadLocalImpl()
-{
+ThreadLocalImpl::~ThreadLocalImpl() {
     assert(key);
 
     pthread_key_delete(key->key);
     delete key;
 }
 
-void *ThreadLocalImpl::get()
-{
+void* ThreadLocalImpl::get() {
     assert(key);
 
     return pthread_getspecific(key->key);
 }
 
-void ThreadLocalImpl::set(void *newValue)
-{
+void ThreadLocalImpl::set(void* newValue) {
     assert(get() == 0);  // We don't want to leak a previously allocated value.
-    assert(newValue);  // If you want to set to null, use `reset` instead.
+    assert(newValue);    // If you want to set to null, use `reset` instead.
     assert(key);
 
     if (const int rc = pthread_setspecific(key->key, newValue)) {
@@ -50,9 +46,8 @@ void ThreadLocalImpl::set(void *newValue)
     }
 }
 
-void ThreadLocalImpl::reset()
-{
-    void *const value = get();
+void ThreadLocalImpl::reset() {
+    void* const value = get();
     if (!value) {
         return;  // already nothing there
     }

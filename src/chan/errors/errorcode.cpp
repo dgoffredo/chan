@@ -3,7 +3,7 @@
 namespace chan {
 namespace {
 
-const char *const messages[] = {
+const char* const messages[] = {
     // OTHER
     "",  // `OTHER` is treated specially
 
@@ -17,7 +17,7 @@ const char *const messages[] = {
     // SET_PIPE_NONBLOCKING
     "Unable to set pipe to non-blocking in drain() in"
     " chan::PipePool::giveBack.",
-    
+
     // DRAIN_PIPE
     "Unable to read remaining data (if any) from pipe buffer in"
     " chan::PipePool::giveBack.",
@@ -49,10 +49,8 @@ const char *const messages[] = {
 
 }  // unnamed namespace
 
-const char *ErrorCode::message() const CHAN_NOEXCEPT
-{
+const char* ErrorCode::message() const CHAN_NOEXCEPT {
     return messages[-int(value) - 1];
 }
 
 }  // namespace chan
-

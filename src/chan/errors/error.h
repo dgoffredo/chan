@@ -25,7 +25,7 @@ class Error : public std::exception {
     // Populate `code()` with `ErrorCode::OTHER`, `what()` with a copy of the
     // specified null-terminated `message`, and populate `systemErrno()` with
     // -1, indicating N/A.
-    explicit Error(const char *message);
+    explicit Error(const char* message);
 
     ErrorCode code() const CHAN_NOEXCEPT;
 
@@ -33,7 +33,7 @@ class Error : public std::exception {
     // error, or `-1` if there is no associated system error code.
     int systemErrno() const CHAN_NOEXCEPT;
 
-    const char *what() const CHAN_NOEXCEPT;
+    const char* what() const CHAN_NOEXCEPT;
 };
 
 inline ErrorCode Error::code() const CHAN_NOEXCEPT {
@@ -44,11 +44,10 @@ inline int Error::systemErrno() const CHAN_NOEXCEPT {
     return cerrno;
 }
 
-inline const char *Error::what() const CHAN_NOEXCEPT {
+inline const char* Error::what() const CHAN_NOEXCEPT {
     return msg;
 }
 
 }  // namespace chan
 
 #endif
-

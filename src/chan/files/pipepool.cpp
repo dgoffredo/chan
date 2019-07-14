@@ -1,6 +1,6 @@
 #include <chan/errors/error.h>
-#include <chan/threading/lockguard.h>
 #include <chan/files/pipepool.h>
+#include <chan/threading/lockguard.h>
 
 #include <algorithm>
 #include <cassert>
@@ -51,7 +51,9 @@ class PipesMatch {
     const PipePair d_pipes;
 
   public:
-    explicit PipesMatch(const PipePair& pipes) : d_pipes(pipes) {}
+    explicit PipesMatch(const PipePair& pipes)
+    : d_pipes(pipes) {
+    }
 
     bool operator()(const PipePair& pipes) const {
         using std::abs;
@@ -65,7 +67,9 @@ class PipesMatch {
     }
 };
 
-PipesMatch matches(const PipePair& pipes) { return PipesMatch(pipes); }
+PipesMatch matches(const PipePair& pipes) {
+    return PipesMatch(pipes);
+}
 
 void drain(int file) {
     // We first set the file to nonblocking, so that we can read any data that
@@ -88,11 +92,13 @@ void drain(int file) {
         const int rcode = read(file, buffer, sizeof buffer);
         if (rcode == 0) {
             break;  // successfully read zero bytes, so it's now empty
-        } else if (rcode == -1) {
+        }
+        else if (rcode == -1) {
             const int errorCode = errno;
             if (errorCode == EAGAIN) {
                 break;  // no more data, so it's now empty
-            } else if (errorCode != EINTR) {
+            }
+            else if (errorCode != EINTR) {
                 // `EINTR` would mean that `read` was interrupted by a signal,
                 // which is fine, we just try again. If it was some other
                 // error, though, then we have to fail.
@@ -119,7 +125,8 @@ PipePool::~PipePool() {
     // have a bug if you're destroying the `PipePool` without having given back
     // all of its `PipePair`s).
     for (std::vector<PipePair>::const_iterator it = d_pipes.begin();
-         it != d_pipes.end(); ++it) {
+         it != d_pipes.end();
+         ++it) {
         const PipePair& pipes = *it;
 
         close(abs(pipes.fromVisitor));

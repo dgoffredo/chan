@@ -8,10 +8,10 @@
 namespace chan {
 
 struct IoEvent {
-    bool read      : 1;  // readability on `this->file`
-    bool write     : 1;  // writability on `this->file`
-    bool hangup    : 1;  // the other end of `this->file` was closed
-    bool timeout   : 1;  // after `this->milliseconds` have elapsed
+    bool read : 1;       // readability on `this->file`
+    bool write : 1;      // writability on `this->file`
+    bool hangup : 1;     // the other end of `this->file` was closed
+    bool timeout : 1;    // after `this->milliseconds` have elapsed
     bool fulfilled : 1;  // successful fulfillment returned from `fulfill(...)`
 
     union {
@@ -23,8 +23,12 @@ struct IoEvent {
 };
 
 inline IoEvent::IoEvent()
-: read(), write(), hangup(), timeout(), fulfilled()
-{}
+: read()
+, write()
+, hangup()
+, timeout()
+, fulfilled() {
+}
 
 }  // namespace chan
 

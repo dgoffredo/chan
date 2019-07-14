@@ -4,8 +4,13 @@
 
 namespace chan {
 
-LockGuard::LockGuard(Mutex& mutex) : d_mutex(mutex) { d_mutex.lock(); }
+LockGuard::LockGuard(Mutex& mutex)
+: d_mutex(mutex) {
+    d_mutex.lock();
+}
 
-LockGuard::~LockGuard() { d_mutex.unlock(); }
+LockGuard::~LockGuard() {
+    d_mutex.unlock();
+}
 
 }  // namespace chan

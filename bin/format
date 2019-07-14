@@ -1,0 +1,6 @@
+#!/bin/sh
+
+REPO=$(dirname $(dirname $0))
+
+find $REPO/src/ -name '*.h' -o -name '*.cpp' | \
+    xargs clang-format-9 -style=file -i
