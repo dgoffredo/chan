@@ -30,7 +30,7 @@ ThreadLocalImpl::~ThreadLocalImpl() {
     delete key;
 }
 
-void* ThreadLocalImpl::get() {
+void* ThreadLocalImpl::get() CHAN_NOEXCEPT {
     assert(key);
 
     return pthread_getspecific(key->key);

@@ -12,7 +12,7 @@ const Error fallbackError("The most recent error local to this thread either "
 
 }  // unnamed namespace
 
-Error lastError() {
+Error lastError() CHAN_NOEXCEPT {
     if (LastError::hasValue()) {
         return LastError::value();
     }
@@ -21,8 +21,13 @@ Error lastError() {
     }
 }
 
-void setLastError(const Error& newError) {
+void setLastError(const Error& newError) CHAN_NOEXCEPT try {
     LastError::setValue(newError);
+}
+catch (...) {
+    // The only failure modes for `setValue` are `EINVAL`, for an invalid
+    // `pthread_key_t`, and `ENOMEM`, if we run out of memory.  Either way,
+    // there's nothing we can do, so ignore all errors.
 }
 
 }  // namespace chan

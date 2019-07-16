@@ -5,7 +5,12 @@ namespace {
 
 const char* const messages[] = {
     // OTHER
-    "",  // `OTHER` is treated specially
+    // `OTHER` is treated specially.  There's a constructor of `chan::Error`
+    // that takes a diagnostic message.  In that case, the "code" is set to
+    // `OTHER` and the "what" is set to the specified message.  However, if
+    // `OTHER` is specified for the "code" without having specified a
+    // "message," then the following default message is used instead.
+    "An error occurred, but no diagnostic message was available.",
 
     // CREATE_PIPE
     "Unable to allocate a new pipe using POSIX pipe() in"

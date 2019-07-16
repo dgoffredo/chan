@@ -83,9 +83,8 @@ class SharedPtr {
     }
 
     friend void swap(SharedPtr& left, SharedPtr& right) {
-        using std::swap;
-        swap(left.object, right.object);
-        swap(left.controlBlock, right.controlBlock);
+        std::swap(left.object, right.object);
+        std::swap(left.controlBlock, right.controlBlock);
     }
 
     OBJECT* get() const {

@@ -39,6 +39,8 @@
 // `ThreadLocal` allocates resources in the underlying system threading library
 // during static initialization, and frees them during static destruction.
 
+#include <chan/errors/noexcept.h>
+
 #include <cassert>
 
 namespace chan {
@@ -56,7 +58,7 @@ class ThreadLocalImpl {
 
     ~ThreadLocalImpl();
 
-    void* get();
+    void* get() CHAN_NOEXCEPT;
 
     void set(void* newValue);
 
@@ -82,14 +84,14 @@ class ThreadLocal {
   public:
     // Return whether the calling thread currently has an object associated
     // with it.  If an error occurs, throw an exception.
-    static bool hasValue();
+    static bool hasValue() CHAN_NOEXCEPT;
 
     // Return a reference providing modifiable access to the object associated
     // with the calling thread.  The behavior is undefined unless the calling
     // thread has called `setValue` at least once since the last call to
     // `reset` or otherwise since program start.  If an error occurs, throw an
     // exception.
-    static VALUE& value();
+    static VALUE& value() CHAN_NOEXCEPT;
 
     // If `hasValue()` is false, then copy construct a thread local `VALUE`
     // using the specified `newValue`.  If `hasValue()` is true, then assign
@@ -108,12 +110,12 @@ ThreadLocalImpl ThreadLocal<VALUE, DERIVED>::impl(
     &ThreadLocalImpl::genericDeleter<VALUE>);
 
 template <typename VALUE, typename DERIVED>
-bool ThreadLocal<VALUE, DERIVED>::hasValue() {
+bool ThreadLocal<VALUE, DERIVED>::hasValue() CHAN_NOEXCEPT {
     return impl.get();
 }
 
 template <typename VALUE, typename DERIVED>
-VALUE& ThreadLocal<VALUE, DERIVED>::value() {
+VALUE& ThreadLocal<VALUE, DERIVED>::value() CHAN_NOEXCEPT {
     VALUE* ptr = static_cast<VALUE*>(impl.get());
     assert(ptr);
     return *ptr;
