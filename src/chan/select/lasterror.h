@@ -16,8 +16,7 @@ class Error;
 // `Error` indicating so.
 Error lastError() CHAN_NOEXCEPT;
 
-// Copy the specified `newError` into thread-local storage if there is enough
-// memory.  If there is not enough memory, do nothing.
+// Copy the specified `newError` into thread-local storage.
 void setLastError(const Error& newError) CHAN_NOEXCEPT;
 
 }  // namespace chan

@@ -12,10 +12,10 @@ class TimePoint {
         return left.offset - right.offset;
     }
 
-    #define CHAN_DEFINE_COMPARISON(OP)                             \
-        friend bool operator OP(TimePoint left, TimePoint right) { \
-            return left.offset OP right.offset;                    \
-        }
+#define CHAN_DEFINE_COMPARISON(OP)                             \
+    friend bool operator OP(TimePoint left, TimePoint right) { \
+        return left.offset OP right.offset;                    \
+    }
 
     CHAN_DEFINE_COMPARISON(==)
     CHAN_DEFINE_COMPARISON(!=)
