@@ -155,7 +155,7 @@ std::vector<PollRecord>::iterator Selector::doPoll() {
 
     const int timeout =
         deadline ? std::max(0L, (*deadline - now()) / milliseconds(1)) : -1;
-        
+
     assert(!pollFds.empty());
 
     switch (::poll(&pollFds.front(), pollFds.size(), timeout)) {
