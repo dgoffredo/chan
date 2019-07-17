@@ -1,4 +1,4 @@
-#include <chan_select.h>
+#include <chan/select/select.h>
 
 #include <poll.h>
 
@@ -8,22 +8,22 @@ namespace {
 // A `Selector` is the object that holds all of the state during a call to
 // `chan::select`.
 class Selector {
-    chai::EventRef*       eventsBegin;
-    const chai::EventRef* eventsEnd;
-    std::vector<pollfd>   pollfds;  // timeouts get a `-1` file descriptor
+    EventRef* const events;
+    const int             numEvents;
+    std::vector<pollfd>   pollfds;
 
   public:
-    explicit Selector(chai::EventRef* events, const chai::EventRef* end);
+    explicit Selector(EventRef* events, const EventRef* end);
 
-    IoEvent handleIoEvent(const IoEvent& fileEvent, unsigned eventIndex);
+    IoEvent handleIoEvent(const IoEvent& fileEvent, unsigned eventIndex);  // ?
 
     int operator()();
 };
 
-Selector::Selector(chai::EventRef* events, const chai::EventRef* end)
-    : eventsBegin(events), eventsEnd(end), pollfds(end - events) {}
+Selector::Selector(EventRef* events, const EventRef* end)
+    : events(events), numEvents(end - events), pollfds(numEvents) {}
 
-int Selector::operator()() {
+int Selector::operator()() try {
     // TODO:
     // - create poll set
     // - deduce timeout (if applicable)
@@ -31,6 +31,15 @@ int Selector::operator()() {
     //     - error? If it's a real error, throw or return. Otherwise, continue.
     //     - events? Call corresponding handlers.
     //     - randomize? Yes...
+}
+catch (const Error& error) {
+    // TODO
+}
+catch (const std::exception& error) {
+    // TODO
+}
+catch (...) {
+    // TODO
 }
 
 IoEvent Selector::handleIoEvent(const IoEvent& fileEvent,
@@ -41,11 +50,8 @@ IoEvent Selector::handleIoEvent(const IoEvent& fileEvent,
 
 }  // namespace
 
-namespace detail {
-
-int selectImpl(chai::EventRef* eventsBegin, const chai::EventRef* eventsEnd) {
+int selectImpl(EventRef* eventsBegin, const EventRef* eventsEnd) {
     return Selector(eventsBegin, eventsEnd)();
 }
 
-}  // namespace detail
 }  // namespace chan

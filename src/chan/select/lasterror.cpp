@@ -2,6 +2,7 @@
 #include <chan/select/lasterror.h>
 
 #include <cassert>
+#include <new>
 
 namespace chan {
 namespace {
