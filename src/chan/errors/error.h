@@ -5,6 +5,7 @@
 #include <chan/errors/noexcept.h>
 
 #include <exception>
+#include <iosfwd>
 
 namespace chan {
 
@@ -35,6 +36,8 @@ class Error : public std::exception {
 
     const char* what() const CHAN_NOEXCEPT;
 };
+
+std::ostream& operator<<(std::ostream&, const Error&);
 
 inline ErrorCode Error::code() const CHAN_NOEXCEPT {
     return rc;

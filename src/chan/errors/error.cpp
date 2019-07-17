@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include <cassert>
+#include <ostream>
 
 namespace chan {
 namespace {
@@ -65,6 +66,10 @@ Error::Error(const char* message)
 , cerrno(-1) {
     assert(message);
     copyMessage(msg, message);
+}
+
+std::ostream& operator<<(std::ostream& stream, const Error& error) {
+    return stream << error.what();
 }
 
 }  // namespace chan

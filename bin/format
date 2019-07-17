@@ -1,6 +1,24 @@
 #!/bin/sh
 
 REPO=$(dirname $(dirname $0))
+DEFAULT_DIR=$REPO/src
 
-find $REPO/src/ -name '*.h' -o -name '*.cpp' | \
+usage() {
+    echo "usage: $0 [directory]"
+    echo "<directory> defaults to $DEFAULT_DIR"
+}
+
+if [ "$1" = "-h" -o "$1" = "--help" ]; then
+    usage
+    exit
+elif [ $# -eq 1 ]; then
+    TARGET_DIR=$1
+elif [ $# -eq 0 ]; then
+    TARGET_DIR=$DEFAULT_DIR
+else
+    >&2 usage
+    exit 1
+fi
+
+find "$TARGET_DIR" -name '*.h' -o -name '*.cpp' | \
     xargs clang-format-9 -style=file -i

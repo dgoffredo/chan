@@ -29,6 +29,7 @@
 #include <chan/event/ioevent.h>
 
 #include <cassert>
+#include <ostream>
 
 namespace chan {
 
@@ -72,9 +73,28 @@ class EventRef {
     void*                 d_instance_p;
     const EventRefVtable* d_vtable_p;
 
+    friend std::ostream& operator<<(std::ostream&   stream,
+                                    const EventRef& event) {
+        return stream << "[instance=" << event.d_instance_p
+                      << " vtable=" << event.d_vtable_p << "]";
+    }
+
   public:
+    // Mustn't forget to specifically define copy-from-const and
+    // copy-from-non-const constructors, or else the constructor template will
+    // be selected instead.
+    EventRef(const EventRef& other) /* = default */
+    : d_instance_p(other.d_instance_p)
+    , d_vtable_p(other.d_vtable_p) {
+    }
+
+    EventRef(EventRef& other)
+    : d_instance_p(other.d_instance_p)
+    , d_vtable_p(other.d_vtable_p) {
+    }
+
     template <typename EVENT>
-    EventRef(EVENT& event)
+    explicit EventRef(EVENT& event)
     : d_instance_p(&event)
     , d_vtable_p(&EventRefVtableImpl<EVENT>::vtable) {
     }

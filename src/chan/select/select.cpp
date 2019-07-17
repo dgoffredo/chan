@@ -60,7 +60,7 @@ Selector::Selector(EventRef* events, const EventRef* end)
 : pollFds(end - events) {
     records.reserve(pollFds.size());
     for (std::size_t i = 0; i < pollFds.size(); ++i) {
-        PollRecord record(events[i], &pollFds[i]);
+        const PollRecord record(events[i], &pollFds[i]);
         records.push_back(record);
     }
 }
@@ -146,8 +146,7 @@ void prepareRecord(PollRecord& record, const TimePoint*& deadline) {
 std::vector<PollRecord>::iterator Selector::doPoll() {
     // Set the fields of each 'pollfd' correctly based on each record's
     // `ioEvent`, and calculate the `deadline` (timeout), if any.
-    const TimePoint* deadline =
-        0;  // a pointer, so that null means "no deadline"
+    const TimePoint* deadline = 0;  // null means "no deadline"
     for (std::vector<PollRecord>::iterator it = records.begin();
          it != records.end();
          ++it) {
@@ -155,8 +154,8 @@ std::vector<PollRecord>::iterator Selector::doPoll() {
     }
 
     const int timeout =
-        deadline ? std::min(0L, (*deadline - now()) / milliseconds(1)) : -1;
-
+        deadline ? std::max(0L, (*deadline - now()) / milliseconds(1)) : -1;
+        
     assert(!pollFds.empty());
 
     switch (::poll(&pollFds.front(), pollFds.size(), timeout)) {

@@ -12,6 +12,7 @@
 
 #include <ctime>
 #include <limits>
+#include <ostream>
 
 namespace chan {
 
@@ -69,7 +70,7 @@ struct TimeSpec {
 
         if (nanoseconds < 0) {
             --seconds;
-            nanoseconds = oneBillion - nanoseconds;
+            nanoseconds += oneBillion;
         }
         else if (nanoseconds >= oneBillion) {
             ++seconds;
@@ -77,6 +78,10 @@ struct TimeSpec {
         }
     }
 };
+
+inline std::ostream& operator<<(std::ostream& stream, TimeSpec spec) {
+    return stream << spec.seconds << "s " << spec.nanoseconds << "ns";
+}
 
 inline TimeSpec operator+(TimeSpec left, TimeSpec right) {
     return left += right;

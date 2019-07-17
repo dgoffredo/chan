@@ -23,8 +23,7 @@ class Duration {
     friend Duration nanoseconds(long quantity);
 
     friend std::ostream& operator<<(std::ostream& stream, Duration duration) {
-        const TimeSpec spec = duration.spec;
-        return stream << spec.seconds << "ms " << spec.nanoseconds << "ns";
+        return stream << duration.spec;
     }
 
     // This operator is defined inline below the class, since it's lengthy.
@@ -108,10 +107,6 @@ inline Duration operator*(Duration duration, long factor) {
 inline Duration operator/(Duration duration, long denominator) {
     duration /= denominator;
     return duration;
-}
-
-inline Duration operator-(Duration duration) {
-    return Duration() - duration;
 }
 
 inline long operator/(Duration left, Duration right) {

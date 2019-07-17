@@ -46,7 +46,7 @@ int selectImpl(EventRef* eventsBegin, const EventRef* eventsEnd);
 
 #define PARAM(INDEX)      CHAN_CAT(event, INDEX)
 #define PARAM_DECL(INDEX) EVENT(INDEX) PARAM(INDEX)
-#define REFIFY(INDEX)     Ref(PARAM(INDEX))
+#define REFIFY(INDEX)     EventRef(PARAM(INDEX))
 
 #define DEFINE_SELECT(NUM_ARGS)                                         \
     template <CHAN_MAP(TYPENAME, (CHAN_SEQ(NUM_ARGS)))>                 \
