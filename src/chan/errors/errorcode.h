@@ -20,10 +20,8 @@ class ErrorCode {
         MUTEX_INIT           = -7,
         MUTEX_LOCK           = -8,
         MUTEX_UNLOCK         = -9,
-        SET_THREADLOCAL      = -10,
-        CREATE_THREADLOCAL   = -11,
-        CLEAR_THREADLOCAL    = -12,
-        CURRENT_TIME         = -13
+        CURRENT_TIME         = -10,
+        POLL                 = -11
     };
 
   private:

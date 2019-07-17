@@ -22,10 +22,8 @@ class DeadlineEvent {
 
     IoEvent file() const {
         IoEvent result;
-        result.timeout = true;
-        // If `when` is in the past, let the duration be zero, not negative.
-        const Duration duration = std::max(when - now(), Duration());
-        result.milliseconds     = duration / milliseconds(1);
+        result.timeout    = true;
+        result.expiration = when;
         return result;
     }
 
@@ -47,6 +45,8 @@ inline DeadlineEvent deadline(TimePoint when) {
 inline DeadlineEvent deadline(std::chrono::steady_clock::time_point when) {
     typedef std::chrono::steady_clock steady_clock;
 
+    // We use millisecond precision here.  This is fine, since `::poll()` can
+    // do no better.
     const steady_clock::duration duration = when - steady_clock::now();
     const long durationMs = duration / std::chrono::milliseconds(1);
 

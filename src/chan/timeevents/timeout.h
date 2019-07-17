@@ -3,6 +3,7 @@
 
 #include <chan/event/ioevent.h>
 #include <chan/time/duration.h>
+#include <chan/time/timepoint.h>
 
 #if __cplusplus >= 201103
 #include <chrono>
@@ -11,17 +12,17 @@
 namespace chan {
 
 class TimeoutEvent {
-    int milliseconds;
+    Duration duration;
 
   public:
     explicit TimeoutEvent(Duration duration)
-    : milliseconds(duration / chan::milliseconds(1)) {
+    : duration(duration) {
     }
 
     IoEvent file() const {
         IoEvent result;
-        result.timeout      = true;
-        result.milliseconds = milliseconds;
+        result.timeout    = true;
+        result.expiration = now() + duration;
         return result;
     }
 

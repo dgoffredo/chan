@@ -39,17 +39,11 @@ const char* const messages[] = {
     // MUTEX_UNLOCK
     "Unable to unlock mutex in chan::Mutex::unlock().",
 
-    // SET_THREADLOCAL
-    "Unable to set a thread-local variable.",
-
-    // CREATE_THREADLOCAL
-    "Unable to create a key for a thread-local variable.",
-
-    // CLEAR_THREADLOCAL
-    "Unable to clear the value of a thread-local variable.",
-
     // CURRENT_TIME
-    "Unable to get the current time on the monotonic clock."
+    "Unable to get the current time on the monotonic clock.",
+
+    // POLL
+    "The system IO multiplexing facility returned an error."
 };
 
 }  // unnamed namespace
