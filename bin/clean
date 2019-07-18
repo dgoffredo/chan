@@ -1,0 +1,4 @@
+#!/bin/sh
+
+make -C build clean
+make -C sandbox clean

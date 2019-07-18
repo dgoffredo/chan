@@ -7,6 +7,9 @@ class MutexImpl;
 class Mutex {
     MutexImpl* d_impl_p;
 
+    Mutex(const Mutex&) /* = delete */;
+    Mutex& operator=(const Mutex&) /* = delete */;
+
   public:
     Mutex();
     ~Mutex();

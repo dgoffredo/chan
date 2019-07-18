@@ -98,7 +98,7 @@ class SharedPtr {
     OBJECT& operator*() const {
         OBJECT* const ptr = get();
         assert(ptr);
-        return ptr;
+        return *ptr;
     }
 
     operator void*() const {

@@ -40,7 +40,7 @@ int systemRandom() {
         : fd(fd) {
         }
 
-        ~FileGuard() {
+        ~FileCloseGuard() {
             ::close(fd);
         }
     } guard(fd);

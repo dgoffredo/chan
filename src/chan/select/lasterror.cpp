@@ -79,6 +79,7 @@ void setLastError(const Error& newError) CHAN_NOEXCEPT {
         // care of by the compiler's implementation of the thread-local storage
         // duration specifier.
         new (storage.buffer) Error(newError);
+        storage.hasValue = true;
     }
 }
 

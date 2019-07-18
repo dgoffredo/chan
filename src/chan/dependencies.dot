@@ -26,6 +26,7 @@ digraph structs {
     chanevents -> chanstate;
     chanevents -> event;
     chanevents -> errors;
+    chanevents -> select;
     
     chanstate -> files;
     chanstate -> threading;
@@ -33,6 +34,7 @@ digraph structs {
     fileevents -> files;
     fileevents -> event;
     fileevents -> errors;
+    fileevents -> select;
 
     files -> errors;
     files -> threading;

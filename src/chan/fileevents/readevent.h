@@ -2,11 +2,11 @@
 #define INCLUDED_CHAN_FILEEVENTS_READEVENT
 
 // This component provides a class template, `ReadEvent`, that satisfies the
-// _Event_ concept. `ReadEvent` represents the event of reading from a
+// _Event_ concept.  `ReadEvent` represents the event of reading from a
 // specified file descriptor.  The amount, if any, read from the file, to where
 // the read data is written, and any side effects, are determined by a
-// function-like object of the type that parameterizes `ReadEvent`. Such an
-// object is passed into the constructor of `ReadEvent`, and serves as its
+// function-like object having the type that parameterizes `ReadEvent`.  Such
+// an object is passed into the constructor of `ReadEvent`, and serves as its
 // "handler."
 //
 // The handler must be invokable as if it were a function template having the
@@ -16,7 +16,7 @@
 //     chan::ReadResult ()(READ_FUNC doRead);
 //
 // The function returns `chan::ReadResult::FULFILLED` if read operations are
-// complete, `chan::ReadResult::CONTINUE` is read operations are not yet
+// complete, `chan::ReadResult::CONTINUE` if read operations are not yet
 // complete, and throws an exception if an error occurs.
 //
 // The argument to the function is itself a function-like object invokable as
@@ -24,13 +24,14 @@
 //
 //     int ()(char* destination, int numBytes);
 //
-// Invoking this function-like object will read up to `numBytes` from the file
-// and copy them into storage starting at `destination`.  The function-like
-// object then returns the non-negative number of bytes read, which may be
+// Invoking this function-like object reads up to `numBytes` from the file
+// and copies them into storage starting at `destination`.  The function-like
+// object then returns the non-negative number of bytes read, which could be
 // zero.  If any error occurs, an exception will be thrown.
 
 #include <chan/event/ioevent.h>
 #include <chan/files/filenonblockingguard.h>
+#include <chan/select/select.h>
 
 #include <cassert>
 
@@ -72,16 +73,38 @@ class ReadFunc {
 
 template <typename HANDLER>
 class ReadEvent {
-    int     fd;
-    HANDLER handler;
+    int          fd;
+    HANDLER      handler;
+    mutable bool selectOnDestroy;
 
   public:
     ReadEvent(int fd, HANDLER handler)
     : fd(fd)
-    , handler(handler) {
+    , handler(handler)
+    , selectOnDestroy(true) {
+    }
+
+    ReadEvent(const ReadEvent& other)
+    : fd(other.fd)
+    , handler(other.handler)
+    , selectOnDestroy(other.selectOnDestroy) {
+        // If `other` thought that it was
+        // responsible for calling `select` when
+        // it's destroyed, it no longer is.
+        other.selectOnDestroy = false;
+    }
+
+    ~ReadEvent() {
+        if (selectOnDestroy) {
+            chan::select(*this);
+        }
     }
 
     IoEvent file() const {
+        // We're participating with `select`, so there's no need to call
+        // `select` when we're destroyed.
+        selectOnDestroy = false;
+
         IoEvent event;
         event.read = true;
         event.file = fd;
@@ -106,7 +129,7 @@ class ReadEvent {
 
     void cancel(IoEvent) const {
     }
-};
+};  // namespace chan
 
 }  // namespace chan
 

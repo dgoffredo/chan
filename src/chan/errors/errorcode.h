@@ -22,7 +22,12 @@ class ErrorCode {
         MUTEX_UNLOCK         = -9,
         CURRENT_TIME         = -10,
         POLL                 = -11,
-        READ                 = -12
+        READ                 = -12,
+        PROTOCOL_WRITE       = -13,
+        PROTOCOL_READ        = -14,
+        PROTOCOL_READ_EOF    = -15,
+        TRANSFER             = -16,
+        SELECT_UNWINDING     = -17
     };
 
   private:

@@ -2,6 +2,7 @@
 #include <chan/errors/error.h>
 #include <chan/threading/mutex.h>
 
+#include <cassert>
 #include <cerrno>
 #include <cstring>
 #include <stdexcept>
@@ -14,21 +15,27 @@ namespace chan {
 // here.  Definitions of member functions of the public class, `Mutex`,
 // follow.
 class MutexImpl {
-    pthread_mutex_t d_mutex;
+    pthread_mutex_t mutex;
 
   public:
     MutexImpl() {
-        if (const int rcode = pthread_mutex_init(&d_mutex, 0)) {
+        if (const int rcode = pthread_mutex_init(&mutex, 0)) {
             throw Error(ErrorCode::MUTEX_INIT, rcode);
         }
     }
 
+    ~MutexImpl() {
+        const int rc = pthread_mutex_destroy(&mutex);
+        assert(rc == 0);
+        (void)rc;
+    }
+
     int lock() {
-        return pthread_mutex_lock(&d_mutex);
+        return pthread_mutex_lock(&mutex);
     }
 
     int unlock() {
-        return pthread_mutex_unlock(&d_mutex);
+        return pthread_mutex_unlock(&mutex);
     }
 };
 

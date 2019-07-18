@@ -22,7 +22,7 @@ WARNINGFLAGS += -Wall -Wextra -pedantic -Werror -Wno-variadic-macros
 ifeq ($(BUILD_TYPE), Release)
     OPTIMIZATIONFLAGS += -O3 -flto
 else
-    OPTIMIZATIONFLAGS += -Og
+    OPTIMIZATIONFLAGS += -O0 # -Og
 endif
 DEBUGFLAGS += -g
 CXXFLAGS += $(WARNINGFLAGS) $(OPTIMIZATIONFLAGS) $(DEBUGFLAGS)

@@ -10,7 +10,7 @@ const char* const messages[] = {
     // `OTHER` and the "what" is set to the specified message.  However, if
     // `OTHER` is specified for the "code" without having specified a
     // "message," then the following default message is used instead.
-    "An error occurred, but no diagnostic message was available.",
+    "An error occurred, but no diagnostic message is available.",
 
     // CREATE_PIPE
     "Unable to allocate a new pipe using POSIX pipe() in"
@@ -46,7 +46,25 @@ const char* const messages[] = {
     "The system IO multiplexing facility returned an error.",
 
     // READ
-    "Unable to read from a file."
+    "Unable to read from a file.",
+
+    // PROTOCOL_WRITE
+    "Unable to write a channel protocol message to a pipe.",
+
+    // PROTOCOL_READ
+    "Unable to read a channel protocol message from a pipe.",
+
+    // PROTOCOL_READ
+    "Encountered EOF when reading a channel protocol message from a pipe.",
+
+    // TRANSFER
+    "An exception was thrown on the other end of a Chan on which `select` was"
+    " either sending on receiving.",
+
+    // SELECT_UNWINDING
+    "An exception was thrown by chan::select or by one of its callees, but"
+    " then one or more additional exception were thrown while chan::select was"
+    " cleaning up as part of handling the exception.  Their messages follow."
 };
 
 }  // unnamed namespace

@@ -4,10 +4,14 @@
 namespace chan {
 
 struct PipePair {
+    // file descriptors
     int fromVisitor;
     int toSitter;
     int fromSitter;
     int toVisitor;
+
+    // reference counting (not a file descriptor)
+    int referenceCount;
 };
 
 }  // namespace chan

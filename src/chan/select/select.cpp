@@ -26,10 +26,15 @@ struct PollRecord {
     // the most recent `IoEvent` returned by `event`
     IoEvent ioEvent;
 
+    // This `state` is used for error handling.  We need to keep track of which
+    // events need to be "cleaned up" when something else throws an exception.
+    enum State { UNINITIALIZED, ACTIVE, DONE } state;
+
     explicit PollRecord(EventRef event, pollfd* pollFd)
     : pollFd(pollFd)
     , event(event)
-    , ioEvent() {
+    , ioEvent()
+    , state(UNINITIALIZED) {
         assert(pollFd);
     }
 };
@@ -50,6 +55,8 @@ class Selector {
     std::vector<PollRecord>::iterator doPoll();
     std::vector<PollRecord>::iterator handleTimeout();
     std::vector<PollRecord>::iterator handleFileEvent();
+
+    Error handleError(const Error& caughtError);
 
   public:
     Selector(EventRef* events, const EventRef* end);
@@ -77,6 +84,7 @@ int Selector::operator()() try {
          ++it) {
         PollRecord& record = *it;
         record.ioEvent     = record.event.file();
+        record.state       = PollRecord::ACTIVE;
     }
 
     // Keep calling `::poll` until we either fulfill an event or throw an
@@ -93,6 +101,7 @@ int Selector::operator()() try {
         if (it != winner) {
             PollRecord& record = *it;
             record.event.cancel(record.ioEvent);
+            record.state = PollRecord::DONE;
         }
     }
 
@@ -109,18 +118,21 @@ int Selector::operator()() try {
     return winnerIndex;
 }
 catch (const Error& error) {
-    setLastError(error);
-    return error.code();
+    const Error finalError = handleError(error);
+    setLastError(finalError);
+    return finalError.code();
 }
 catch (const std::exception& error) {
     const Error wrapper(error.what());
-    setLastError(wrapper);
-    return wrapper.code();
+    const Error finalError = handleError(wrapper);
+    setLastError(finalError);
+    return finalError.code();
 }
 catch (...) {
     const Error error(ErrorCode::OTHER);
-    setLastError(error);
-    return error.code();
+    const Error finalError = handleError(error);
+    setLastError(finalError);
+    return finalError.code();
 }
 
 void prepareRecord(PollRecord& record, const TimePoint*& deadline) {
@@ -199,6 +211,7 @@ std::vector<PollRecord>::iterator Selector::handleTimeout() {
         io = record.event.fulfill(io);
         if (io.fulfilled) {
             // we're done!
+            record.state = PollRecord::DONE;
             return it;
         }
     }
@@ -235,11 +248,51 @@ std::vector<PollRecord>::iterator Selector::handleFileEvent() {
         io = record.event.fulfill(record.ioEvent);
         if (io.fulfilled) {
             // we're done!
+            record.state = PollRecord::DONE;
             return it;
         }
     }
 
     return records.end();  // no winner yet
+}
+
+Error Selector::handleError(const Error& originalError) {
+    // To clean up, call `cancel` on any `PollRecord` current in the `ACTIVE`
+    // state.  However, doing so could throw an exception, so possibly append
+    // error messages as we go.
+    bool caughtAnotherOne = false;
+
+    Error combinedError(ErrorCode::SELECT_UNWINDING);
+    combinedError.appendMessage(originalError.what());
+
+    for (std::vector<PollRecord>::iterator it = records.begin();
+         it != records.end();
+         ++it) {
+        PollRecord& record = *it;
+
+        if (record.state != PollRecord::ACTIVE) {
+            continue;
+        }
+
+        try {
+            record.event.cancel(record.ioEvent);
+        }
+        catch (const std::exception& anotherError) {
+            caughtAnotherOne = true;
+            combinedError.appendMessage(anotherError.what());
+        }
+        catch (...) {
+            caughtAnotherOne = true;
+            combinedError.appendMessage(ErrorCode(ErrorCode::OTHER).message());
+        }
+    }
+
+    if (caughtAnotherOne) {
+        return combinedError;
+    }
+    else {
+        return originalError;
+    }
 }
 
 }  // namespace

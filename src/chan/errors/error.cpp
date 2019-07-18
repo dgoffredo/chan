@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <algorithm>
 #include <cassert>
 #include <ostream>
 
@@ -26,17 +27,33 @@ int copyMessage(char (&output)[n], const char* message) {
     return result;
 }
 
+template <int n>
+int extendMessage(char (&buffer)[n], char* from, const char* extension) {
+    const int offset = from - buffer;
+    if (offset < 0 || offset >= n) {
+        return -1;
+    }
+
+    return snprintf(from, n - offset, "\n\n%s", extension);
+}
+
 }  // unnamed namespace
 
-Error::Error(const ErrorCode& code)
+// clang-format doesn't know that `CHAN_NOEXCEPT` is `noexcept` or `throw()`
+// clang-format off
+Error::Error(const ErrorCode& code) CHAN_NOEXCEPT
 : rc(code)
 , cerrno(-1) {
+    // clang-format on
     copyMessage(msg, code.message());
 }
 
-Error::Error(const ErrorCode& code, int systemErrno)
+// clang-format doesn't know that `CHAN_NOEXCEPT` is `noexcept` or `throw()`
+// clang-format off
+Error::Error(const ErrorCode& code, int systemErrno) CHAN_NOEXCEPT
 : rc(code)
 , cerrno(systemErrno) {
+    // clang-format on
     const int offset1 = copyMessage(msg, code.message());
     if (offset1 < 0) {
         return;
@@ -46,6 +63,7 @@ Error::Error(const ErrorCode& code, int systemErrno)
     // left in the buffer.
     char* output = msg + offset1;
     int   size   = int(sizeof(msg)) - offset1;
+
     assert(size >= 0);
 
     const int offset2 = snprintf(output, size, " System error: ");
@@ -61,11 +79,22 @@ Error::Error(const ErrorCode& code, int systemErrno)
     strError(&strerror_r, systemErrno, output, size);
 }
 
-Error::Error(const char* message)
+// clang-format doesn't know that `CHAN_NOEXCEPT` is `noexcept` or `throw()`
+// clang-format off
+Error::Error(const char* message) CHAN_NOEXCEPT
 : rc(ErrorCode::OTHER)
 , cerrno(-1) {
+    // clang-format on
     assert(message);
+
     copyMessage(msg, message);
+}
+
+int Error::appendMessage(const char* extension) CHAN_NOEXCEPT {
+    assert(extension);
+
+    return extendMessage(
+        msg, std::find(msg, msg + sizeof msg, '\0'), extension);
 }
 
 std::ostream& operator<<(std::ostream& stream, const Error& error) {

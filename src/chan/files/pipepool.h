@@ -9,27 +9,25 @@
 namespace chan {
 
 class PipePool {
-  public:
-    // "Whose" in the sense of "who reads or writes to these descriptors?"
-    // So, "toVisitor" and "fromVisitor" belong to `SITTER` (*not*
-    // `VISITOR`), because it is the sitter that will be writing to and
-    // reading from the visitor.  Similarly, "toSitter" and "fromSitter"
-    // belong to `VISITOR`.  `BOTH` indicates all four file
-    // descriptors.
-    enum Whose { SITTER, VISITOR, BOTH };
+    struct FreeListNode : public PipePair {
+        FreeListNode* next;
+    };
 
-  private:
-    Mutex                 d_mutex;
-    std::vector<PipePair> d_pipes;
-
-    PipePool(const PipePool&) /* = delete */;
+    Mutex         mutex;
+    FreeListNode* freeList;
 
   public:
+    PipePool();
     ~PipePool();
 
-    PipePair take();
+    // Return a pointer to a `PipePair` whose `referenceCount == 1`.  The
+    // `PipePair` must be deallocated before this `PipePool` is destroyed.  A
+    // `PipePair` is deallocated by passing it to `deallocate`.
+    PipePair* allocate();
 
-    void giveBack(const PipePair& pipes, Whose whose = BOTH);
+    // The behavior is undefined unless `pipePair` was obtained from the result
+    // of a previous call to `allocate` and whose `referenceCount` is zero.
+    void deallocate(PipePair* pipePair);
 };
 
 }  // namespace chan

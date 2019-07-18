@@ -1,9 +1,9 @@
+#include <chan/debug/trace.h>
 #include <chan/errors/error.h>
 #include <chan/files/filenonblockingguard.h>
 #include <chan/files/pipepool.h>
 #include <chan/threading/lockguard.h>
 
-#include <algorithm>
 #include <cassert>
 #include <cerrno>
 #include <cstdlib>
@@ -15,59 +15,10 @@
 namespace chan {
 namespace {
 
-bool available(const PipePair& pipes) {
-    const bool result = pipes.toVisitor > 0 && pipes.fromSitter > 0;
-
-    if (result) {
-        // Since `PipePair` can be returned only from a visitor's perspective,
-        // a sitter's perspective, or both, then at least the relevant pairs
-        // will have the same sign, so we can get away with checking only one
-        // from each pair.
-        assert(pipes.fromVisitor > 0);
-        assert(pipes.toSitter > 0);
-    }
-
-    return result;
-}
-
 void makePipe(int (&files)[2]) {
     if (::pipe(files)) {
         throw Error(ErrorCode::CREATE_PIPE, errno);
     }
-}
-
-void markTaken(PipePair& pipes) {
-    // The pipes are marked as being "taken" ("checked out") by negating them.
-    // There are guaranteed to be enough negative values, and doing this
-    // preserves what the positive value was.
-    pipes.toSitter *= -1;
-    pipes.toVisitor *= -1;
-    pipes.fromSitter *= -1;
-    pipes.fromVisitor *= -1;
-}
-
-class PipesMatch {
-    const PipePair d_pipes;
-
-  public:
-    explicit PipesMatch(const PipePair& pipes)
-    : d_pipes(pipes) {
-    }
-
-    bool operator()(const PipePair& pipes) const {
-        using std::abs;
-        // Absolute value of the bound `PipePair`, because some of the stored
-        // descriptors might be negated if they're currently "checked out,"
-        // but still we want to consider it the same `PipePair`.
-        return d_pipes.toSitter == abs(pipes.toSitter) &&
-               d_pipes.toVisitor == abs(pipes.toVisitor) &&
-               d_pipes.fromSitter == abs(pipes.fromSitter) &&
-               d_pipes.fromVisitor == abs(pipes.fromVisitor);
-    }
-};
-
-PipesMatch matches(const PipePair& pipes) {
-    return PipesMatch(pipes);
 }
 
 void drain(int file) {
@@ -103,36 +54,39 @@ void drain(int file) {
 
 }  // namespace
 
+PipePool::PipePool()
+: freeList() {
+}
+
 PipePool::~PipePool() {
-    using std::abs;
+    // Close all of the files in the pool, and delete the free list.
 
-    // Close all of the files in the pool.  `abs` is used so that it doesn't
-    // matter whether the file is currently "checked out" (though you probably
-    // have a bug if you're destroying the `PipePool` without having given back
-    // all of its `PipePair`s).
-    for (std::vector<PipePair>::const_iterator it = d_pipes.begin();
-         it != d_pipes.end();
-         ++it) {
-        const PipePair& pipes = *it;
+    const FreeListNode* node = freeList;
+    while (node) {
+        const PipePair& pipePair = *node;
 
-        ::close(abs(pipes.fromVisitor));
-        ::close(abs(pipes.toSitter));
-        ::close(abs(pipes.fromSitter));
-        ::close(abs(pipes.toVisitor));
+        ::close(pipePair.fromVisitor);
+        ::close(pipePair.toSitter);
+        ::close(pipePair.fromSitter);
+        ::close(pipePair.toVisitor);
+
+        const FreeListNode* next = node->next;
+        delete node;
+        node = next;
     }
 }
 
-PipePair PipePool::take() {
-    {
-        LockGuard lock(d_mutex);
+PipePair* PipePool::allocate() {
+    CHAN_WITH_LOCK(mutex) {
+        if (freeList) {
+            FreeListNode* result = freeList;
+            freeList             = freeList->next;
 
-        const std::vector<PipePair>::iterator found =
-            std::find_if(d_pipes.begin(), d_pipes.end(), available);
+            CHAN_TRACE("Allocating recycled pipes at ", result);
 
-        if (found != d_pipes.end()) {
-            PipePair result = *found;
-            markTaken(*found);
-            return result;  // RETURN
+            ++result->referenceCount;
+            assert(result->referenceCount == 1);
+            return result;
         }
     }
 
@@ -141,48 +95,37 @@ PipePair PipePool::take() {
     makePipe(towardsSitter);
     makePipe(towardsVisitor);
 
-    PipePair pipes;
-    pipes.toSitter    = towardsSitter[1];
-    pipes.toVisitor   = towardsVisitor[1];
-    pipes.fromSitter  = towardsVisitor[0];
-    pipes.fromVisitor = towardsSitter[0];
+    FreeListNode* node      = new FreeListNode;
+    PipePair&     pipePair  = *node;
+    pipePair.toSitter       = towardsSitter[1];
+    pipePair.toVisitor      = towardsVisitor[1];
+    pipePair.fromSitter     = towardsVisitor[0];
+    pipePair.fromVisitor    = towardsSitter[0];
+    pipePair.referenceCount = 1;
 
-    LockGuard lock(d_mutex);
-    d_pipes.push_back(pipes);
-    markTaken(d_pipes.back());
-
-    return pipes;
+    CHAN_TRACE("Allocating new pipes at ", node);
+    return node;
 }
 
-void PipePool::giveBack(const PipePair& pipes, Whose whose) {
-    LockGuard lock(d_mutex);
+void PipePool::deallocate(PipePair* pipePair) {
+    assert(pipePair);
 
-    const std::vector<PipePair>::iterator found =
-        std::find_if(d_pipes.begin(), d_pipes.end(), matches(pipes));
+    FreeListNode* node = static_cast<FreeListNode*>(pipePair);
+    CHAN_TRACE("Deallocating pipes at ",
+               node,
+               ", whose reference count is ",
+               pipePair->referenceCount);
 
-    assert(found != d_pipes.end());
-    PipePair& foundPipes = *found;
+    assert(pipePair->referenceCount == 0);
 
-    using std::abs;
-    // "Checked out" file descriptors will have been negated.  Make sure all
-    // "given back" descriptors are positive.
+    // Clear any data left in the pipe buffers.
+    drain(pipePair->fromVisitor);
+    drain(pipePair->fromSitter);
 
-    if (whose == SITTER || whose == BOTH) {
-        foundPipes.fromVisitor = abs(foundPipes.fromVisitor);
-        foundPipes.toVisitor   = abs(foundPipes.toVisitor);
-    }
+    LockGuard lock(mutex);
 
-    if (whose == VISITOR || whose == BOTH) {
-        foundPipes.fromSitter = abs(foundPipes.fromSitter);
-        foundPipes.toSitter   = abs(foundPipes.toSitter);
-    }
-
-    // If all files in the `PipePair` have now been returned, it will be a
-    // candidate for reuse.  Clear any data left in the pipe buffers.
-    if (available(foundPipes)) {
-        drain(foundPipes.fromVisitor);
-        drain(foundPipes.fromSitter);
-    }
+    node->next = freeList;
+    freeList   = node;
 }
 
 }  // namespace chan
