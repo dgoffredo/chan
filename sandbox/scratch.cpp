@@ -1,7 +1,7 @@
-#include <chan/fileevents/readintobuffer.h>
-#include <chan/select/random.h>
 #include <chan/errors/error.h>
+#include <chan/fileevents/readintobuffer.h>
 #include <chan/select/lasterror.h>
+#include <chan/select/random.h>
 #include <chan/select/select.h>
 #include <chan/time/duration.h>
 #include <chan/time/timepoint.h>
@@ -16,12 +16,12 @@
 #include <string>
 #include <vector>
 
-#include <fcntl.h>  // open
+#include <fcntl.h>   // open
 #include <unistd.h>  // sleep
 
 namespace {
 
-int testRead(int argc, char *argv[]) {
+int testRead(int argc, char* argv[]) {
     assert(argc > 1);
     const char* const path = argv[1];
 
@@ -31,7 +31,10 @@ int testRead(int argc, char *argv[]) {
 
     char buffer[64] = {};
 
-    using chan::select; using chan::read; using chan::timeout; using chan::seconds;
+    using chan::read;
+    using chan::seconds;
+    using chan::select;
+    using chan::timeout;
 
     switch (select(read(file, buffer), timeout(seconds(5)))) {
         case 0:
@@ -49,13 +52,13 @@ int testRead(int argc, char *argv[]) {
 
 void testTimeoutAndDeadline(int, char*[]) {
     const chan::TimePoint when = chan::now() + chan::milliseconds(2);
-    const int rc = chan::select(  chan::deadline(when)
-                                , chan::deadline(when)
-                                // , chan::timeout(chan::milliseconds(498))
-                                // , chan::deadline(chan::now() + chan::nanoseconds(24))
-                                // , chan::timeout(chan::milliseconds(499))
-                                // , chan::timeout(chan::milliseconds(498))
-                                );
+    const int             rc =
+        chan::select(chan::deadline(when), chan::deadline(when)
+                     // , chan::timeout(chan::milliseconds(498))
+                     // , chan::deadline(chan::now() + chan::nanoseconds(24))
+                     // , chan::timeout(chan::milliseconds(499))
+                     // , chan::timeout(chan::milliseconds(498))
+        );
     if (rc < 0) {
         std::cout << "An error occurred: " << chan::lastError() << "\n";
     }
@@ -72,7 +75,7 @@ void testTimePointAndDuration(int, char*[]) {
     std::cout << "We just slept for " << (chan::now() - before) << "\n";
 }
 
-int testShuffle(int argc, char *argv[]) {
+int testShuffle(int argc, char* argv[]) {
     const int length = std::atoi(argv[1]);
 
     std::vector<int> numbers;
@@ -97,7 +100,7 @@ int testShuffle(int argc, char *argv[]) {
     }
 }
 
-int testRandom(int argc, char *argv[]) {
+int testRandom(int argc, char* argv[]) {
     const int low    = std::atoi(argv[1]);
     const int high   = std::atoi(argv[2]);
     const int trials = std::atoi(argv[3]);
@@ -128,6 +131,6 @@ int testRandom(int argc, char *argv[]) {
 
 }  // namespace
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     return testRead(argc, argv);
 }

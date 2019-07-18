@@ -1,8 +1,6 @@
 #ifndef INCLUDED_CHAN_FILEEVENTS_READINTOBUFFER
 #define INCLUDED_CHAN_FILEEVENTS_READINTOBUFFER
 
-// TODO: just trying this out.
-
 #include <chan/fileevents/readevent.h>
 
 namespace chan {
