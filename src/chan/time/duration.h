@@ -114,9 +114,9 @@ inline Duration operator/(Duration duration, long denominator) {
 inline long operator/(Duration left, Duration right) {
     if (std::numeric_limits<long>::digits >= 63) {
         // This is quick and easy when `long` is 64-bits.
-        const long billion = CHAN_CAT(1,000,000,000);
-        return (left.spec.seconds * billion + left.spec.nanoseconds)
-             / (right.spec.seconds * billion + right.spec.nanoseconds);
+        const long billion = CHAN_CAT(1, 000, 000, 000);
+        return (left.spec.seconds * billion + left.spec.nanoseconds) /
+               (right.spec.seconds * billion + right.spec.nanoseconds);
     }
     else {
         // Spend a little more to avoid overflow for smaller `long` type.

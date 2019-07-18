@@ -15,8 +15,7 @@ namespace chan {
 // integers based on the specified `state`, which will be modified by this
 // function.  Subsequently calling `random15` again with the altered state will
 // return the next value in the sequence.
-inline int random15(int& state)
-{
+inline int random15(int& state) {
     // Use an unsigned integer so we get modular arithmetic (rollover on
     // overflow).
     unsigned nextState = state;
@@ -26,7 +25,7 @@ inline int random15(int& state)
     // structures," by Karl Entacher.  That paper is available online, as of
     // this writing, at the following URI:
     // https://pdfs.semanticscholar.org/6ae5/
-    //                                 fe88d296e70f188b0d12207d468c8f36e262.pdf 
+    //                                 fe88d296e70f188b0d12207d468c8f36e262.pdf
     nextState = nextState * 1103515245 + 12345;
 
     // The sequence of integers produced by the above LCG is not the same

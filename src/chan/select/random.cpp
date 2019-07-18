@@ -32,6 +32,19 @@ int systemRandom() {
         return 0;
     }
 
+    class FileGuard {
+        int fd;
+
+      public:
+        explicit FileGuard(int fd)
+        : fd(fd) {
+        }
+
+        ~FileGuard() {
+            close(fd);
+        }
+    } guard(fd);
+
     // The choice of pointer types, below, is based on some version of GCC's
     // libstdc++, where the return value is referred to by a `void*` and then
     // incremented using a temporary `static_cast` to a `char*` (so that
@@ -39,9 +52,9 @@ int systemRandom() {
     // uses a `reinterpret_cast` to `char*` to begin with.  I was at first
     // concerned about undefined behavior, but have since learned to stop
     // worrying and just do what the standard libraries do.
-    int     result;
-    void   *destination = &result;
-    size_t  bytesLeft   = sizeof(result);
+    int    result;
+    void*  destination = &result;
+    size_t bytesLeft   = sizeof(result);
     while (bytesLeft) {
         const int rc = read(fd, &result, bytesLeft);
         if (rc == -1) {
