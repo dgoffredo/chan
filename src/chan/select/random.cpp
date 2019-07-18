@@ -25,23 +25,23 @@ int systemRandom() {
 int systemRandom() {
     int fd;
     do {
-        fd = open("/dev/urandom", O_RDONLY);
+        fd = ::open("/dev/urandom", O_RDONLY);
     } while (fd == -1 && errno == EINTR);
 
     if (fd == -1) {
         return 0;
     }
 
-    class FileGuard {
+    class FileCloseGuard {
         int fd;
 
       public:
-        explicit FileGuard(int fd)
+        explicit FileCloseGuard(int fd)
         : fd(fd) {
         }
 
         ~FileGuard() {
-            close(fd);
+            ::close(fd);
         }
     } guard(fd);
 
@@ -56,7 +56,7 @@ int systemRandom() {
     void*  destination = &result;
     size_t bytesLeft   = sizeof(result);
     while (bytesLeft) {
-        const int rc = read(fd, &result, bytesLeft);
+        const int rc = ::read(fd, destination, bytesLeft);
         if (rc == -1) {
             if (errno == EINTR) {
                 continue;

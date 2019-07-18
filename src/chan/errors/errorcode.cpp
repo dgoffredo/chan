@@ -16,19 +16,19 @@ const char* const messages[] = {
     "Unable to allocate a new pipe using POSIX pipe() in"
     " chan::PipePool::take().",
 
-    // GET_PIPE_FLAGS
-    "Unable to get pipe flags in drain() in chan::PipePool::giveBack.",
+    // GET_FILE_FLAGS
+    "Unable to get file's flags in order to later set it to nonblocking.",
 
-    // SET_PIPE_NONBLOCKING
-    "Unable to set pipe to non-blocking in drain() in"
-    " chan::PipePool::giveBack.",
+    // SET_FILE_NONBLOCKING
+    "Unable to set a file to non-blocking.",
 
     // DRAIN_PIPE
     "Unable to read remaining data (if any) from pipe buffer in"
     " chan::PipePool::giveBack.",
 
-    // RESTORE_PIPE_FLAGS
-    "Unable restore pipe's flags in drain() in chan::PipePool::giveBack.",
+    // RESTORE_FILE_FLAGS
+    "Unable to restore a file's flags after previously having set the file to"
+    " non-blocking.",
 
     // MUTEX_INIT
     "Unable to initialize mutex in chan::MutexImpl constructor.",
@@ -43,7 +43,10 @@ const char* const messages[] = {
     "Unable to get the current time on the monotonic clock.",
 
     // POLL
-    "The system IO multiplexing facility returned an error."
+    "The system IO multiplexing facility returned an error.",
+
+    // READ
+    "Unable to read from a file."
 };
 
 }  // unnamed namespace

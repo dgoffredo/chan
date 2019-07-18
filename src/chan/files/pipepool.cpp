@@ -1,4 +1,5 @@
 #include <chan/errors/error.h>
+#include <chan/files/filenonblockingguard.h>
 #include <chan/files/pipepool.h>
 #include <chan/threading/lockguard.h>
 
@@ -30,7 +31,7 @@ bool available(const PipePair& pipes) {
 }
 
 void makePipe(int (&files)[2]) {
-    if (pipe(files)) {
+    if (::pipe(files)) {
         throw Error(ErrorCode::CREATE_PIPE, errno);
     }
 }
@@ -73,21 +74,13 @@ void drain(int file) {
     // We first set the file to nonblocking, so that we can read any data that
     // remains without waiting for more writes.  We then read everything we
     // can, and finally restore the file's flags (make it blocking again).
-    const int flags = fcntl(file, F_GETFL);
-
-    if (flags == -1) {
-        throw Error(ErrorCode::GET_PIPE_FLAGS, errno);
-    }
-
-    if (fcntl(file, F_SETFL, flags | O_NONBLOCK) == -1) {
-        throw Error(ErrorCode::SET_PIPE_NONBLOCKING, errno);
-    }
+    FileNonblockingGuard guard(file);
 
     // There will be at most a few bytes of data in there, so the buffer can be
     // small.
     char buffer[8];
     for (;;) {
-        const int rcode = read(file, buffer, sizeof buffer);
+        const int rcode = ::read(file, buffer, sizeof buffer);
         if (rcode == 0) {
             break;  // successfully read zero bytes, so it's now empty
         }
@@ -106,11 +99,6 @@ void drain(int file) {
 
         assert(rcode > 0);  // number of bytes read
     }
-
-    // Restore the file's previous settings.
-    if (fcntl(file, F_SETFL, flags) == -1) {
-        throw Error(ErrorCode::RESTORE_PIPE_FLAGS, errno);
-    }
 }
 
 }  // namespace
@@ -127,10 +115,10 @@ PipePool::~PipePool() {
          ++it) {
         const PipePair& pipes = *it;
 
-        close(abs(pipes.fromVisitor));
-        close(abs(pipes.toSitter));
-        close(abs(pipes.fromSitter));
-        close(abs(pipes.toVisitor));
+        ::close(abs(pipes.fromVisitor));
+        ::close(abs(pipes.toSitter));
+        ::close(abs(pipes.fromSitter));
+        ::close(abs(pipes.toVisitor));
     }
 }
 

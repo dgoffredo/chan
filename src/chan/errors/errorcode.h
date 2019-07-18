@@ -13,15 +13,16 @@ class ErrorCode {
     enum Value {
         OTHER                = -1,
         CREATE_PIPE          = -2,
-        GET_PIPE_FLAGS       = -3,
-        SET_PIPE_NONBLOCKING = -4,
+        GET_FILE_FLAGS       = -3,
+        SET_FILE_NONBLOCKING = -4,
         DRAIN_PIPE           = -5,
-        RESTORE_PIPE_FLAGS   = -6,
+        RESTORE_FILE_FLAGS   = -6,
         MUTEX_INIT           = -7,
         MUTEX_LOCK           = -8,
         MUTEX_UNLOCK         = -9,
         CURRENT_TIME         = -10,
-        POLL                 = -11
+        POLL                 = -11,
+        READ                 = -12
     };
 
   private:
