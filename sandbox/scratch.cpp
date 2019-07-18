@@ -24,12 +24,14 @@ int main() {
 namespace {
 
 void timeoutAndDeadline() {
-    const int rc = chan::select(chan::deadline(chan::now() + chan::seconds(1)),
-                                chan::deadline(chan::now() + chan::seconds(2)),
-                                chan::timeout(chan::milliseconds(498)),
-                                chan::deadline(chan::now() + chan::nanoseconds(24)),
-                                chan::timeout(chan::milliseconds(499)),
-                                chan::timeout(chan::milliseconds(498)));
+    const chan::TimePoint when = chan::now() + chan::milliseconds(2);
+    const int rc = chan::select(  chan::deadline(when)
+                                , chan::deadline(when)
+                                // , chan::timeout(chan::milliseconds(498))
+                                // , chan::deadline(chan::now() + chan::nanoseconds(24))
+                                // , chan::timeout(chan::milliseconds(499))
+                                // , chan::timeout(chan::milliseconds(498))
+                                );
     if (rc < 0) {
         std::cout << "An error occurred: " << chan::lastError() << "\n";
     }

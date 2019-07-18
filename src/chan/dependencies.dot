@@ -1,18 +1,18 @@
 digraph structs {
     node [shape=record, fontsize=11];
 
-    root [label="{./|{chan.h|select.h|error.h|file.h}}"];
-    chan [label="{chan/|{chan}}"];
+    root       [label="{./|{chan.h|select.h|error.h|file.h}}"];
+    chan       [label="{chan/|{chan}}"];
     chanevents [label="{chanevents/|{chansend|chanrecv}}"];
-    chanstate [label="{chanstate/|{chanstate}}"];
+    chanstate  [label="{chanstate/|{chanstate}}"];
     fileevents [label="{fileevents/|{read|write}}"];
-    files [label="{files/|{pipepair|pipepool|file}}"];
-    select [label="{select/|{select|lasterror}}"];
-    errors [label="{errors/|{error|errors}}"];
-    threading [label="{threading/|{mutex|threadlocal|lockguard}}"];
-    event [label="{event/|{eventref|ioevent}}"];
-    macros [label="{macros/|{macros}}"];
-    time [label="{time/|{timepoint|duration|now}}"];
+    files      [label="{files/|{pipepair|pipepool|file}}"];
+    select     [label="{select/|{select|lasterror|random}}"];
+    errors     [label="{errors/|{error|errorcode|noexcept|strerror}}"];
+    threading  [label="{threading/|{mutex|lockguard|sharedptr}}"];
+    event      [label="{event/|{eventref|ioevent}}"];
+    macros     [label="{macros/|{macros}}"];
+    time       [label="{time/|{timepoint|duration|timespec}}"];
     timeevents [label="{timeevents/|{timeout|deadline}}"];
 
     root -> chan;

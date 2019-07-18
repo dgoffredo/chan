@@ -1,6 +1,7 @@
 #include <chan/errors/error.h>
 #include <chan/errors/errorcode.h>
 #include <chan/select/lasterror.h>
+#include <chan/select/random.h>
 #include <chan/select/select.h>
 #include <chan/time/timepoint.h>
 
@@ -39,8 +40,10 @@ class Selector {
     // The elements of `pollFds` are aliased by the members of `records`.  Each
     // `PollRecord` contains a pointer to one of the `pollfd` in `pollFds`.
     // This way, `records` can be shuffled to enforce some kind of fairness.
+    // The `Random15 generator` is used to do the shuffling.
     std::vector<pollfd>     pollFds;
     std::vector<PollRecord> records;
+    Random15                generator;
 
     // The following functions return an iterator to the "winner" (event that
     // was fulfilled), or otherwise to `records.end()` if there was no winner.
@@ -57,7 +60,9 @@ class Selector {
 };
 
 Selector::Selector(EventRef* events, const EventRef* end)
-: pollFds(end - events) {
+: pollFds(end - events)
+, records()
+, generator(chan::systemRandom()) {
     records.reserve(pollFds.size());
     for (std::size_t i = 0; i < pollFds.size(); ++i) {
         const PollRecord record(events[i], &pollFds[i]);
@@ -177,7 +182,8 @@ std::vector<PollRecord>::iterator Selector::doPoll() {
 }
 
 std::vector<PollRecord>::iterator Selector::handleTimeout() {
-    // shuffle(records);  // TODO
+    chan::shuffle(records, generator);
+
     const TimePoint after = now();
 
     for (std::vector<PollRecord>::iterator it = records.begin();
@@ -201,7 +207,7 @@ std::vector<PollRecord>::iterator Selector::handleTimeout() {
 }
 
 std::vector<PollRecord>::iterator Selector::handleFileEvent() {
-    // shuffle(records);  // TODO
+    chan::shuffle(records, generator);
 
     for (std::vector<PollRecord>::iterator it = records.begin();
          it != records.end();
