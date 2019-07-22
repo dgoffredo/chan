@@ -47,7 +47,8 @@ class ChanEvent {
 };
 
 // Transferring an `OBJECT` between a sender and a receiver can be expressed as
-// a non-member function template.
+// a non-member function template.  There is also a special overload for
+// `void`, since `void` channels never transfer objects.
 template <typename OBJECT>
 void transfer(const ChanSender<OBJECT>&   sender,
               const ChanReceiver<OBJECT>& receiver) {
@@ -69,6 +70,15 @@ void transfer(const ChanSender<OBJECT>&   sender,
 
         *receiver.destination = *sender.copyFrom;
     }
+}
+
+inline void transfer(const ChanSender<void>&   sender,
+                     const ChanReceiver<void>& receiver) {
+    // By convention, `receiver.destination` is null, `sender.transferMode` is
+    // `MOVE`, and `sender.moveFrom` is null.  There's nothing to do here.
+    assert(!receiver.destination);
+    assert(sender.transferMode == ChanSender<void>::MOVE);
+    assert(!sender.moveFrom);
 }
 
 template <typename OBJECT>
