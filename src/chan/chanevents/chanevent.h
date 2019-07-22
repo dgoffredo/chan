@@ -199,8 +199,8 @@ IoEvent ChanEvent<POLICY>::fulfillSitter(IoEvent event) {
                     // An exception was thrown on the other end of the channel
                     // during the transfer.  We don't know what exactly, but we
                     // can report that something went wrong.  The thread on the
-                    // other side of the channel, on the other hand, will throw
-                    // the original exception.
+                    // other side of the channel will throw the original
+                    // exception.
                     cleanup();
                     throw Error(ErrorCode::TRANSFER);
                 default:
@@ -306,6 +306,7 @@ IoEvent ChanEvent<POLICY>::fulfillVisitor(IoEvent event) {
             // with, or the departing sitting opponent poked its next in line,
             // which will then send us `HI`.
             role = SITTER;
+            // TODO: Is this write to `them.pipes->referenceCount` safe?
             if (--them.pipes->referenceCount == 0) {
                 CHAN_TRACE("Decremented their pipes ",
                            them.pipes,

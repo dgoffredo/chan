@@ -25,6 +25,89 @@
 
 namespace {
 
+struct Channels {
+    chan::Chan<std::string>& input;
+    chan::Chan<std::string>& output;
+
+    Channels(chan::Chan<std::string>& input, chan::Chan<std::string>& output)
+    : input(input)
+    , output(output) {
+    }
+};
+
+void* sendAndRecvChans(void* channelsRaw) {
+    assert(channelsRaw);
+    Channels& channels = *static_cast<Channels*>(channelsRaw);
+
+    const char* const words[] = {"foo", "bar", "baz"};
+    const int quota = sizeof(words) / sizeof(words[0]);
+    int numSent     = 0;
+    int numReceived = 0;
+    std::string buffer;
+
+    while (numSent < quota && numReceived < quota) {
+        switch (chan::select(channels.input.recv(&buffer),
+                             channels.output.send(*(words + numSent)))) {
+            case 0:
+                CHAN_TRACE("I received ", buffer);
+                ++numReceived;
+                break;
+            case 1:
+                CHAN_TRACE("I sent ", *(words + numSent));
+                ++numSent;
+                break;
+            default:
+                throw chan::lastError();
+        }
+    }
+
+    while (numSent < quota) {
+        channels.output.send(*(words + numSent));
+        ++numSent;
+    }
+
+    while (numReceived < quota) {
+        channels.input.recv(&buffer);
+        ++numReceived;
+    }
+
+    return 0;
+}
+
+int testChanMultiplex(int argc, char* argv[]) {
+    chan::Chan<std::string> chan1;
+    chan::Chan<std::string> chan2;
+
+    Channels channels1(chan1, chan2);
+    Channels channels2(chan2, chan1);
+    int      numThreadPairs = 1;
+
+    if (argc > 1) {
+        numThreadPairs = std::atoi(argv[1]);
+    }
+
+    std::vector<pthread_t> threads1(numThreadPairs);
+    for (int i = 0; i < numThreadPairs; ++i) {
+        const int rc = pthread_create(&threads1[i], 0, sendAndRecvChans, &channels1);
+        assert(rc == 0);
+    }
+
+    std::vector<pthread_t> threads2(numThreadPairs);
+    for (int i = 0; i < numThreadPairs; ++i) {
+        const int rc = pthread_create(&threads2[i], 0, sendAndRecvChans, &channels2);
+        assert(rc == 0);
+    }
+
+    for (int i = 0; i < numThreadPairs; ++i) {
+        int rc = pthread_join(threads1[i], 0);
+        assert(rc == 0);
+        rc = pthread_join(threads2[i], 0);
+        assert(rc == 0);
+    }
+
+    return 0;
+}
+
 void* sendChan(void* chanPtrRaw) {
     CHAN_TRACE("I was just created.");
 
@@ -292,6 +375,8 @@ int main(int argc, char* argv[]) {
             return testShuffle(argc, argv);
         case 7:
             return testRandom(argc, argv);
+        case 8:
+            return testChanMultiplex(argc, argv);
         default:
             std::cerr << "Invalid test number " << testNum << "\n";
             return 1;
