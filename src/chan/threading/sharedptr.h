@@ -1,8 +1,21 @@
 #ifndef INCLUDED_CHAN_THREADING_SHAREDPTR
 #define INCLUDED_CHAN_THREADING_SHAREDPTR
 
-// If C++11's `std::shared_ptr` isn't available, we can take a deep breath and
-// use a mutex.
+// If C++11's `std::shared_ptr` is available, this is just a type alias.  If
+// it's not available, we can take a deep breath and use a mutex.
+
+#if __cplusplus >= 201103
+
+#include <memory>
+
+namespace chan {
+
+template <typename OBJECT>
+using SharedPtr = std::shared_ptr<OBJECT>;
+
+}  // namespace chan
+
+#else // #if __cplusplus >= 201103
 
 #include <chan/threading/lockguard.h>
 #include <chan/threading/mutex.h>
@@ -107,5 +120,7 @@ class SharedPtr {
 };
 
 }  // namespace chan
+
+#endif  // #if __cplusplus >= 201103
 
 #endif
