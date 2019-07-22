@@ -2,6 +2,7 @@
 #include <chan/debug/trace.h>
 #include <chan/errors/error.h>
 #include <chan/fileevents/readintobuffer.h>
+#include <chan/fileevents/readintostring.h>
 #include <chan/select/lasterror.h>
 #include <chan/select/random.h>
 #include <chan/select/select.h>
@@ -105,7 +106,30 @@ int testChan(int argc, char* argv[]) {
     return 0;
 }
 
-int testRead(int argc, char* argv[]) {
+int testReadIntoString(int argc, char* argv[]) {
+    assert(argc > 1);
+    const char* const path = argv[1];
+
+    const int file = ::open(path, O_RDONLY | O_NONBLOCK);
+
+    assert(file != -1);
+
+    std::string destination;
+    chan::read(file, destination);
+    std::cout << "read the following: " << destination << "\n";
+
+    std::string indirect = chan::read(file, destination);
+    std::cout << "Then read this: " << indirect << "\n";
+
+    std::cout << "Finally read this: " << chan::read(file, destination)
+              << "\n";
+
+    ::close(file);
+
+    return 0;
+}
+
+int testReadIntoBuffer(int argc, char* argv[]) {
     assert(argc > 1);
     const char* const path = argv[1];
 
@@ -248,5 +272,5 @@ int testRandom(int, char* argv[]) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
-    return testChan(argc, argv);
+    return testReadIntoString(argc, argv);
 }
