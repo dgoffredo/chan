@@ -269,5 +269,31 @@ int testRandom(int, char* argv[]) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
-    return testReadIntoBuffer(argc, argv);
+    assert(argc > 1);
+
+    const int testNum = std::atoi(argv[1]);
+    --argc;
+    ++argv;
+
+    switch (testNum) {
+        case 0:
+            return testChan(argc, argv);
+        case 1:
+            return testReadIntoString(argc, argv);
+        case 2:
+            return testReadIntoBuffer(argc, argv);
+        case 3:
+            return testSelectRead(argc, argv);
+        case 4:
+            return testTimeoutAndDeadline(argc, argv);
+        case 5:
+            return testTimePointAndDuration(argc, argv);
+        case 6:
+            return testShuffle(argc, argv);
+        case 7:
+            return testRandom(argc, argv);
+        default:
+            std::cerr << "Invalid test number " << testNum << "\n";
+            return 1;
+    }
 }

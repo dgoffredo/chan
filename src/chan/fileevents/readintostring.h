@@ -25,8 +25,6 @@ class ReadIntoString {
 
     template <typename READ_FUNC>
     ReadResult operator()(READ_FUNC doRead) const {
-        destination.clear();
-
         char buffer[4096];  // typical pipe buffer size on Linux
         int  totalCount = 0;
         for (;;) {
