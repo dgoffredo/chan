@@ -73,7 +73,7 @@ class ReadFunc {
 
 template <typename HANDLER>
 class ReadEvent {
-    int     fd;
+    int fd;
 
   protected:
     HANDLER      handler;

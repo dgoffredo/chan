@@ -12,11 +12,10 @@
 namespace chan {
 
 class ReadIntoString {
-  public:
     std::string& destination;
+    int*         totalRead;
 
-  private:
-    int* totalRead;
+    friend class ReadIntoStringEvent;
 
   public:
     ReadIntoString(std::string& destination, int* totalRead)
@@ -57,8 +56,8 @@ class ReadIntoStringEvent : public ReadEvent<ReadIntoString> {
     operator std::string&() const {
         selectOnDestroy = false;
 
-        if (chan::select(*this)) {
-            throw chan::lastError();
+        if (select(*this)) {
+            throw lastError();
         }
 
         return handler.destination;

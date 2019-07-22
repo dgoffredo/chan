@@ -20,5 +20,5 @@ else
     exit 1
 fi
 
-find "$TARGET_DIR" -name '*.h' -o -name '*.cpp' | \
+find "$TARGET_DIR" -type f \( -name '*.h' -o -name '*.cpp' \) | \
     xargs clang-format-9 -style=file -i

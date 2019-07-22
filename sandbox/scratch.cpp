@@ -142,11 +142,8 @@ int testReadIntoBuffer(int argc, char* argv[]) {
     std::cout << "read the following:\n";
     std::cout.write(buffer, sizeof(buffer)) << "\n";
 
-    char                                  buffer2[64] = {};
-    chan::ReadEvent<chan::ReadIntoBuffer> event(chan::read(file, buffer2));
-    (void)chan::ReadEvent<chan::ReadIntoBuffer>(event);
-    std::cout << "then read the following:\n";
-    std::cout.write(buffer2, sizeof(buffer2)) << "\n";
+    std::cout << "and then read an additional " << chan::read(file, buffer)
+              << " bytes.\n";
 
     ::close(file);
 
@@ -272,5 +269,5 @@ int testRandom(int, char* argv[]) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
-    return testReadIntoString(argc, argv);
+    return testReadIntoBuffer(argc, argv);
 }
