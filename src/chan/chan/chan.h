@@ -9,7 +9,7 @@
 
 namespace chan {
 
-template <typename OBJECT>
+template <typename OBJECT = void>
 class Chan {
     SharedPtr<ChanState<OBJECT> > state;
 
@@ -30,7 +30,7 @@ Chan<OBJECT>::Chan()
 
 template <typename OBJECT>
 SendEvent<OBJECT> Chan<OBJECT>::send(const OBJECT& copyFrom) {
-    return SendEvent<OBJECT>(*state, copyFrom);
+    return SendEvent<OBJECT>(*state, &copyFrom);
 }
 
 template <typename OBJECT>
@@ -52,6 +52,36 @@ OBJECT Chan<OBJECT>::recv() {
         default:
             throw lastError();
     }
+}
+
+// `class Chan` is specialized for `void`, the default type.  `Chan<void>` is
+// a channel that does not transfer any values, but still participates in all
+// of the synchronization.  It's convenient for when a "dummy" type is needed,
+// e.g. for a "done" channel.  Rather than defining an empty `struct` for this
+// purpose, or using something like `bool`, instead `Chan<>` can be used so
+// that no type argument is needed.
+template <>
+class Chan<void> {
+    SharedPtr<ChanState<void> > state;
+
+  public:
+    Chan();
+
+    SendEvent<void> send();
+    RecvEvent<void> recv();
+};
+
+inline Chan<void>::Chan()
+: state(new ChanState<void>) {
+}
+
+inline SendEvent<void> Chan<void>::send() {
+    void* const null = 0;
+    return SendEvent<void>(*state, null);
+}
+
+inline RecvEvent<void> Chan<void>::recv() {
+    return RecvEvent<void>(*state, 0);
 }
 
 }  // namespace chan

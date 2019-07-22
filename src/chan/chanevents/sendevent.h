@@ -36,13 +36,11 @@ class SendEvent : public ChanEvent<SendEventPolicy<OBJECT> > {
 
   public:
     SendEvent(ChanState<OBJECT>& chanState, OBJECT* source);
-    SendEvent(ChanState<OBJECT>& chanState, const OBJECT& source);
+    SendEvent(ChanState<OBJECT>& chanState, const OBJECT* source);
 };
 
 template <typename OBJECT>
 ChanSender<OBJECT> makeSender(OBJECT* source) {
-    assert(source);
-
     ChanSender<OBJECT> sender;
 
     sender.transferMode = ChanSender<OBJECT>::MOVE;
@@ -52,11 +50,11 @@ ChanSender<OBJECT> makeSender(OBJECT* source) {
 }
 
 template <typename OBJECT>
-ChanSender<OBJECT> makeSender(const OBJECT& source) {
+ChanSender<OBJECT> makeSender(const OBJECT* source) {
     ChanSender<OBJECT> sender;
 
     sender.transferMode = ChanSender<OBJECT>::COPY;
-    sender.copyFrom     = &source;
+    sender.copyFrom     = source;
 
     return sender;
 }
@@ -68,7 +66,7 @@ SendEvent<OBJECT>::SendEvent(ChanState<OBJECT>& chanState, OBJECT* source)
 
 template <typename OBJECT>
 SendEvent<OBJECT>::SendEvent(ChanState<OBJECT>& chanState,
-                             const OBJECT&      source)
+                             const OBJECT*      source)
 : Base(chanState, makeSender(source)) {
 }
 

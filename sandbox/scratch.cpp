@@ -25,6 +25,36 @@
 
 namespace {
 
+void* waitForMessage(void* chanRaw) {
+    chan::Chan<>& done = *static_cast<chan::Chan<>*>(chanRaw);
+
+    switch (chan::select(done.recv())) {
+        case 0:
+            break;
+        default:
+            throw chan::lastError();
+    }
+
+    return 0;
+}
+
+int testDefaultChan(int, char*[]) {
+    chan::Chan<> done;
+    pthread_t    waiter;
+    
+    int rc = pthread_create(&waiter, 0, waitForMessage, &done);
+    assert(rc == 0);
+   
+    // done.send();   // TODO: implement the `selectOnDestroy` thing
+    if (chan::select(done.send())) {
+        throw chan::lastError();
+    }
+    rc = pthread_join(waiter, 0);
+    assert(rc == 0);
+
+    return 0;
+}
+
 struct Channels {
     chan::Chan<std::string>& input;
     chan::Chan<std::string>& output;
@@ -377,6 +407,8 @@ int main(int argc, char* argv[]) {
             return testRandom(argc, argv);
         case 8:
             return testChanMultiplex(argc, argv);
+        case 9:
+            return testDefaultChan(argc, argv);
         default:
             std::cerr << "Invalid test number " << testNum << "\n";
             return 1;

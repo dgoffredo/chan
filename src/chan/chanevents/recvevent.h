@@ -40,8 +40,6 @@ class RecvEvent : public ChanEvent<RecvEventPolicy<OBJECT> > {
 
 template <typename OBJECT>
 ChanReceiver<OBJECT> makeReceiver(OBJECT* destination) {
-    assert(destination);
-
     ChanReceiver<OBJECT> receiver;
     receiver.destination = destination;
     return receiver;
