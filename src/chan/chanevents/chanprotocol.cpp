@@ -34,9 +34,7 @@ ChanProtocolMessage fromByte(char byte) {
     return result;
 }
 
-// The `toName` function is used only with `CHAN_TRACE`, so we conditionally
-// define the function to appease `-W-unused-function`.
-#ifdef CHAN_TRACE_ON
+// `toName` is only used in `CHAN_TRACE` messages (debugging).
 const char* toName(ChanProtocolMessage message) {
 #define CASE(NAME)                  \
     case ChanProtocolMessage::NAME: \
@@ -55,7 +53,6 @@ const char* toName(ChanProtocolMessage message) {
 
 #undef CASE
 }
-#endif  // #ifdef CHAN_TRACE_ON
 
 }  // namespace
 

@@ -15,7 +15,7 @@ using SharedPtr = std::shared_ptr<OBJECT>;
 
 }  // namespace chan
 
-#else // #if __cplusplus >= 201103
+#else  // #if __cplusplus >= 201103
 
 #include <chan/threading/lockguard.h>
 #include <chan/threading/mutex.h>
