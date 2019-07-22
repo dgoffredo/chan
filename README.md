@@ -6,7 +6,7 @@ Go-like channels in C++
 
 Why
 ===
-I want to able to `select` on both file read/writes _and_ C++ object channel
+I want to be able to `select` on both file read/writes _and_ C++ object channel
 send/receives.
 
 Currently the only option seems to be to drop down to POSIX and use `poll`.
@@ -111,6 +111,42 @@ void lines(int                     fileDescriptor,
               }
               current.erase(0, pos);
           } break;
+          case 1:
+              return;
+          default:
+              std::cerr << chan::lastError().what() << "\n";
+              return;
+        }
+    }
+}
+```
+
+That could be simplified to the following, keeping in mind that
+`chan::File::readUntil` can have side effects even when it is not the event
+chosen by `select`:
+```C++
+#include <chan/chan.h>
+#include <chan/file.h>
+#include <chan/select.h>
+#include <iostream>
+
+void lines(int                     fileDescriptor,
+           chan::Chan<std::string> output,
+           chan::Chan<>            done,
+           std::string             delimiter = "\n")
+{
+    std::string message;
+    chan::File  input(fileDescriptor);
+
+    using chan::select;
+
+    for (;;) {
+        switch (select(input.readUntil(message, delimiter), done.recv())) {
+          case 0:
+              if (select(output.send(message), done.recv()) == 1)
+                  return;
+              message.clear();
+              break;
           case 1:
               return;
           default:
