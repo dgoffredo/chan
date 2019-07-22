@@ -1,10 +1,11 @@
 #ifndef INCLUDED_CHAN_DEBUG_TRACE
 #define INCLUDED_CHAN_DEBUG_TRACE
 
+#include <chan/macros/macros.h>
+
 #ifdef CHAN_TRACE_ON
 
 #include <chan/debug/currentthread.h>
-#include <chan/macros/macros.h>
 #include <chan/threading/lockguard.h>
 #include <chan/threading/mutex.h>
 
@@ -32,8 +33,11 @@ extern Mutex traceMutex;
 
 #else  // #ifdef CHAN_TRACE_ON
 
-#define CHAN_TRACE(...) \
-    do {                \
+#define CHAN_TRACE_UNUSEDIFY(TERM) (void)sizeof(TERM);
+
+#define CHAN_TRACE(...)                                \
+    do {                                               \
+        CHAN_MAPP(CHAN_TRACE_UNUSEDIFY, (__VA_ARGS__)) \
     } while (false)
 
 #endif  // #ifdef CHAN_TRACE_ON

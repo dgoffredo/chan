@@ -41,14 +41,11 @@ void* waitForMessage(void* chanRaw) {
 int testDefaultChan(int, char*[]) {
     chan::Chan<> done;
     pthread_t    waiter;
-    
+
     int rc = pthread_create(&waiter, 0, waitForMessage, &done);
     assert(rc == 0);
-   
-    // done.send();   // TODO: implement the `selectOnDestroy` thing
-    if (chan::select(done.send())) {
-        throw chan::lastError();
-    }
+
+    done.send();
     rc = pthread_join(waiter, 0);
     assert(rc == 0);
 
@@ -69,11 +66,11 @@ void* sendAndRecvChans(void* channelsRaw) {
     assert(channelsRaw);
     Channels& channels = *static_cast<Channels*>(channelsRaw);
 
-    const char* const words[] = {"foo", "bar", "baz"};
-    const int quota = sizeof(words) / sizeof(words[0]);
-    int numSent     = 0;
-    int numReceived = 0;
-    std::string buffer;
+    const char* const words[]     = { "foo", "bar", "baz" };
+    const int         quota       = sizeof(words) / sizeof(words[0]);
+    int               numSent     = 0;
+    int               numReceived = 0;
+    std::string       buffer;
 
     while (numSent < quota && numReceived < quota) {
         switch (chan::select(channels.input.recv(&buffer),
@@ -118,13 +115,15 @@ int testChanMultiplex(int argc, char* argv[]) {
 
     std::vector<pthread_t> threads1(numThreadPairs);
     for (int i = 0; i < numThreadPairs; ++i) {
-        const int rc = pthread_create(&threads1[i], 0, sendAndRecvChans, &channels1);
+        const int rc =
+            pthread_create(&threads1[i], 0, sendAndRecvChans, &channels1);
         assert(rc == 0);
     }
 
     std::vector<pthread_t> threads2(numThreadPairs);
     for (int i = 0; i < numThreadPairs; ++i) {
-        const int rc = pthread_create(&threads2[i], 0, sendAndRecvChans, &channels2);
+        const int rc =
+            pthread_create(&threads2[i], 0, sendAndRecvChans, &channels2);
         assert(rc == 0);
     }
 

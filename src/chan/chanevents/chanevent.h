@@ -8,7 +8,11 @@
 #include <chan/debug/trace.h>
 #include <chan/errors/error.h>
 #include <chan/errors/errorcode.h>
+#include <chan/errors/noexcept.h>
+#include <chan/errors/uncaughtexceptions.h>
 #include <chan/event/ioevent.h>
+#include <chan/select/lasterror.h>
+#include <chan/select/select.h>
 #include <chan/threading/lockguard.h>
 
 #include <algorithm>  // std::swap
@@ -28,13 +32,16 @@ class ChanEvent {
   private:
     enum Role { SITTER, VISITOR };
 
-    Role     role;
-    Teammate me;
-    Opponent them;  // used when my `role` is `VISITOR`
-    State&   chanState;
+    Role         role;
+    Teammate     me;
+    Opponent     them;  // used when my `role` is `VISITOR`
+    State&       chanState;
+    mutable bool selectOnDestroy;
 
   public:
     ChanEvent(State& chanState, const Teammate& me);
+    ChanEvent(const ChanEvent& other);
+    ~ChanEvent() CHAN_THROWS;
 
     IoEvent file();
     IoEvent fulfill(IoEvent);
@@ -79,6 +86,10 @@ inline void transfer(const ChanSender<void>&   sender,
     assert(!receiver.destination);
     assert(sender.transferMode == ChanSender<void>::MOVE);
     assert(!sender.moveFrom);
+
+    // `-W-unused-parameter`
+    (void)sender;
+    (void)receiver;
 }
 
 template <typename OBJECT>
@@ -91,11 +102,35 @@ template <typename POLICY>
 ChanEvent<POLICY>::ChanEvent(State& chanState, const Teammate& me)
 : me(me)
 , them()
-, chanState(chanState) {
+, chanState(chanState)
+, selectOnDestroy(true) {
+}
+
+template <typename POLICY>
+ChanEvent<POLICY>::ChanEvent(const ChanEvent& other)
+: me(other.me)
+, them(other.them)
+, chanState(other.chanState)
+, selectOnDestroy(other.selectOnDestroy) {
+    assert(selectOnDestroy);
+    other.selectOnDestroy = false;
+}
+
+template <typename POLICY>
+ChanEvent<POLICY>::~ChanEvent() CHAN_THROWS {
+    if (selectOnDestroy && !uncaughtExceptions()) {
+        if (select(*this)) {
+            throw lastError();
+        }
+    }
 }
 
 template <typename POLICY>
 IoEvent ChanEvent<POLICY>::file() {
+    // I'm being called by `select`, so there's no need to call `select` in my
+    // destructor.
+    selectOnDestroy = false;
+
     // I'll be adding myself to the list of teammates, so first I need to
     // allocate pipes and a node for the list.
     me.pipes = chanState.pipePool.allocate();

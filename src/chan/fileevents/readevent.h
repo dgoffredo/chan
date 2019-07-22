@@ -29,8 +29,11 @@
 // object then returns the non-negative number of bytes read, which could be
 // zero.  If any error occurs, an exception will be thrown.
 
+#include <chan/errors/noexcept.h>
+#include <chan/errors/uncaughtexceptions.h>
 #include <chan/event/ioevent.h>
 #include <chan/files/filenonblockingguard.h>
+#include <chan/select/lasterror.h>
 #include <chan/select/select.h>
 
 #include <cassert>
@@ -90,15 +93,16 @@ class ReadEvent {
     : fd(other.fd)
     , handler(other.handler)
     , selectOnDestroy(other.selectOnDestroy) {
-        // If `other` thought that it was
-        // responsible for calling `select` when
+        // If `other` thought that it was responsible for calling `select` when
         // it's destroyed, it no longer is.
         other.selectOnDestroy = false;
     }
 
-    ~ReadEvent() {
-        if (selectOnDestroy) {
-            chan::select(*this);
+    ~ReadEvent() CHAN_THROWS {
+        if (selectOnDestroy && !uncaughtExceptions()) {
+            if (chan::select(*this)) {
+                throw lastError();
+            }
         }
     }
 
