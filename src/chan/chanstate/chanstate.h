@@ -8,7 +8,7 @@
 
 namespace chan {
 
-// `ChanParticipant` are the fields common to `ChanSender` and `SendReceiver`
+// `ChanParticipant` are the fields common to `ChanSender` and `SendReceiver`.
 template <typename OBJECT>
 struct ChanParticipant {
     typedef OBJECT ObjectType;
