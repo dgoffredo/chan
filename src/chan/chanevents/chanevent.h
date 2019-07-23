@@ -22,6 +22,8 @@
 
 namespace chan {
 
+class EventContext;
+
 template <typename POLICY>
 class ChanEvent {
   public:
@@ -43,7 +45,7 @@ class ChanEvent {
     ChanEvent(const ChanEvent& other);
     ~ChanEvent() CHAN_THROWS;
 
-    IoEvent file();
+    IoEvent file(const EventContext&);
     IoEvent fulfill(IoEvent);
     void    cancel(IoEvent);
 
@@ -126,7 +128,7 @@ ChanEvent<POLICY>::~ChanEvent() CHAN_THROWS {
 }
 
 template <typename POLICY>
-IoEvent ChanEvent<POLICY>::file() {
+IoEvent ChanEvent<POLICY>::file(const EventContext&) {
     // I'm being called by `select`, so there's no need to call `select` in my
     // destructor.
     selectOnDestroy = false;

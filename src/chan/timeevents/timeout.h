@@ -11,6 +11,8 @@
 
 namespace chan {
 
+class EventContext;
+
 class TimeoutEvent {
     Duration duration;
 
@@ -19,7 +21,7 @@ class TimeoutEvent {
     : duration(duration) {
     }
 
-    IoEvent file() const {
+    IoEvent file(const EventContext&) const {
         IoEvent result;
         result.timeout    = true;
         result.expiration = now() + duration;

@@ -12,6 +12,8 @@
 
 namespace chan {
 
+class EventContext;
+
 class DeadlineEvent {
     TimePoint when;
 
@@ -20,7 +22,7 @@ class DeadlineEvent {
     : when(when) {
     }
 
-    IoEvent file() const {
+    IoEvent file(const EventContext&) const {
         IoEvent result;
         result.timeout    = true;
         result.expiration = when;

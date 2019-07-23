@@ -1,16 +1,21 @@
 #include <chan/errors/error.h>
 #include <chan/errors/errorcode.h>
+#include <chan/event/eventcontext.h>
 #include <chan/select/lasterror.h>
 #include <chan/select/random.h>
 #include <chan/select/select.h>
+#include <chan/threading/lockguard.h>
+#include <chan/threading/mutex.h>
+#include <chan/threading/sharedptr.h>
 #include <chan/time/timepoint.h>
 
 #include <errno.h>
 #include <poll.h>
 
-#include <algorithm>
+#include <algorithm>  // std::max
 #include <cassert>
-#include <cstddef>  // std::size_t
+#include <cstddef>   // std::size_t
+#include <iterator>  // std::distance
 #include <vector>
 
 namespace chan {
@@ -45,10 +50,9 @@ class Selector {
     // The elements of `pollFds` are aliased by the members of `records`.  Each
     // `PollRecord` contains a pointer to one of the `pollfd` in `pollFds`.
     // This way, `records` can be shuffled to enforce some kind of fairness.
-    // The `Random15 generator` is used to do the shuffling.
-    std::vector<pollfd>     pollFds;
-    std::vector<PollRecord> records;
-    Random15                generator;
+    std::vector<pollfd>            pollFds;
+    std::vector<PollRecord>        records;
+    SharedPtr<SelectorFulfillment> fulfillment;
 
     // The following functions return an iterator to the "winner" (event that
     // was fulfilled), or otherwise to `records.end()` if there was no winner.
@@ -69,7 +73,7 @@ class Selector {
 Selector::Selector(EventRef* events, const EventRef* end)
 : pollFds(end - events)
 , records()
-, generator(chan::systemRandom()) {
+, fulfillment(new SelectorFulfillment()) {
     records.reserve(pollFds.size());
     for (std::size_t i = 0; i < pollFds.size(); ++i) {
         const PollRecord record(events[i], &pollFds[i]);
@@ -78,21 +82,58 @@ Selector::Selector(EventRef* events, const EventRef* end)
 }
 
 int Selector::operator()() try {
+    // When an event is finally fulfilled, we'll refer to its position in
+    // `records` using `winner`.  Its argument index will then be calculated
+    // and returned.  `records.end()` means that we don't yet have a winner.
+    std::vector<PollRecord>::iterator winner = records.end();
+
+    // Randomize the order of the `PollRecord`s so that a highly available
+    // event in front won't always get selected.
+    shuffle(records);
+
+    // `fulfillment->mutex` will be locked all of the time except for:
+    // - during `::poll`
+    // - possibly within an event's `.file`, `.fulfill`, or `.cancel` methods
+    assert(fulfillment);
+    LockGuard lock(fulfillment->mutex);
+
     // initial setup of `records`
     for (std::vector<PollRecord>::iterator it = records.begin();
          it != records.end();
          ++it) {
         PollRecord& record = *it;
-        record.ioEvent     = record.event.file();
+        // Use the index of `record` within `records` as the `EventKey`.
+        const EventKey key = std::distance(records.begin(), it);
+        record.ioEvent     = record.event.file(EventContext(fulfillment, key));
         record.state       = PollRecord::ACTIVE;
+
+        // The event might have returned an `IoEvent` indicating that the event
+        // is fulfilled, or it could be that an event in some other `Selector`
+        // updated our `fulfillment`.  Check both cases.
+        if (record.ioEvent.fulfilled) {
+            // If both `ioEvent.fulfilled` _and_
+            // `fulfillment->fulfilledEventKey` are set, then they must match,
+            // or else the program is malformed.  It could be, though, that
+            // `fulfillment->fulfilledEventKey` is not set, which is fine.
+            if (fulfillment->fulfilledEventKey != nullEventKey()) {
+                assert(fulfillment->fulfilledEventKey == key);
+            }
+
+            record.state = PollRecord::DONE;
+            winner       = it;
+            break;
+        }
+        else if (fulfillment->fulfilledEventKey != nullEventKey()) {
+            winner = records.begin() + fulfillment->fulfilledEventKey;
+            break;
+        }
     }
 
     // Keep calling `::poll` until we either fulfill an event or throw an
     // exception.
-    std::vector<PollRecord>::iterator winner;
-    do {
+    while (winner == records.end()) {
         winner = doPoll();
-    } while (winner == records.end());
+    }
 
     // Now that we have a winner, call `cancel` on all of the other events.
     for (std::vector<PollRecord>::iterator it = records.begin();
@@ -174,8 +215,23 @@ std::vector<PollRecord>::iterator Selector::doPoll() {
         deadline ? std::max(0L, (*deadline - now()) / milliseconds(1)) : -1;
 
     assert(!pollFds.empty());
+    assert(fulfillment);
 
-    switch (::poll(&pollFds.front(), pollFds.size(), timeout)) {
+    // `fulfillment` is unlocked for the duration of `::poll`, so that an event
+    // in a different `Selector` could possibly lock the mutex, mark one of
+    // our events as fulfilled, wake us up by triggering an event on one of the
+    // files we're monitoring, and then release the mutex.
+    fulfillment->mutex.unlock();
+    const int rc = ::poll(&pollFds.front(), pollFds.size(), timeout);
+    fulfillment->mutex.lock();
+
+    // If `fulfillment->fulfilledEventKey` is set, then we don't even bother
+    // checking what woke us up from `::poll`, since we are now fulfilled.
+    if (fulfillment->fulfilledEventKey != nullEventKey()) {
+        return records.begin() + fulfillment->fulfilledEventKey;
+    }
+
+    switch (rc) {
         case -1: {
             const int errorCode = errno;
             switch (errorCode) {
@@ -194,8 +250,6 @@ std::vector<PollRecord>::iterator Selector::doPoll() {
 }
 
 std::vector<PollRecord>::iterator Selector::handleTimeout() {
-    chan::shuffle(records, generator);
-
     const TimePoint after = now();
 
     for (std::vector<PollRecord>::iterator it = records.begin();
@@ -220,8 +274,6 @@ std::vector<PollRecord>::iterator Selector::handleTimeout() {
 }
 
 std::vector<PollRecord>::iterator Selector::handleFileEvent() {
-    chan::shuffle(records, generator);
-
     for (std::vector<PollRecord>::iterator it = records.begin();
          it != records.end();
          ++it) {

@@ -4,7 +4,7 @@
 // `EventRef` is a type-erasing reference to any object that satisfies the
 // _Event_ concept.  The _Event_ concept is a set of three member functions:
 //
-//     IoEvent file();
+//     IoEvent file(const EventContext&);
 //
 //     IoEvent fulfill(IoEvent);
 //
@@ -17,12 +17,6 @@
 // implemented by calling the corresponding member functions on the referred-to
 // object through a pointer to that object.
 //
-// For example,
-//
-//     SomeEventType event;
-//     EventRef      ref(event);
-//     IoEvent       io = ref.file();
-//
 // Note that since `EventRef` has reference semantics, the lifetime of the
 // object to which it refers must exceed the `EventRef` lifetime.
 
@@ -33,16 +27,18 @@
 
 namespace chan {
 
+class EventContext;  // see "chan/event/eventcontext.h"
+
 struct EventRefVtable {
-    IoEvent (*file)(void* instance);
+    IoEvent (*file)(void* instance, const EventContext& context);
     IoEvent (*fulfill)(void* instance, IoEvent);
     void (*cancel)(void* instance, IoEvent);
 };
 
 template <typename EVENT>
 struct EventRefVtableImpl {
-    static IoEvent file(void* instance) {
-        return ref(instance).file();
+    static IoEvent file(void* instance, const EventContext& context) {
+        return ref(instance).file(context);
     }
 
     static IoEvent fulfill(void* instance, IoEvent ioEvent) {
@@ -82,7 +78,8 @@ class EventRef {
   public:
     // Mustn't forget to specifically define copy-from-const and
     // copy-from-non-const constructors, or else the constructor template will
-    // be selected instead.
+    // get called instead (since `EventRef` satisfies the _Event_ concept, but
+    // we never want an `EventRef<EventRef<T> >`).
     EventRef(const EventRef& other) /* = default */
     : d_instance_p(other.d_instance_p)
     , d_vtable_p(other.d_vtable_p) {
@@ -99,8 +96,8 @@ class EventRef {
     , d_vtable_p(&EventRefVtableImpl<EVENT>::vtable) {
     }
 
-    IoEvent file() {
-        return d_vtable_p->file(d_instance_p);
+    IoEvent file(const EventContext& context) {
+        return d_vtable_p->file(d_instance_p, context);
     }
 
     IoEvent fulfill(IoEvent ioEvent) {

@@ -324,6 +324,7 @@ int testTimePointAndDuration(int, char*[]) {
 
 int testShuffle(int, char* argv[]) {
     const int length = std::atoi(argv[1]);
+    assert(length);
 
     std::vector<int> numbers;
     numbers.reserve(length);
@@ -353,6 +354,8 @@ int testRandom(int, char* argv[]) {
     const int low    = std::atoi(argv[1]);
     const int high   = std::atoi(argv[2]);
     const int trials = std::atoi(argv[3]);
+
+    assert(trials);
 
     std::map<int, int> counts;
     chan::Random15     generator(0);  // seeded with zero

@@ -40,6 +40,8 @@
 
 namespace chan {
 
+class EventContext;
+
 // This class is the return type of `ReadEvent` `HANDLERS`.  Possible values
 // are:
 // - `ReadResult::FULFILLED`, meaning that reading is done.
@@ -106,7 +108,7 @@ class ReadEvent {
         }
     }
 
-    IoEvent file() const {
+    IoEvent file(const EventContext&) const {
         // We're participating with `select`, so there's no need to call
         // `select` when we're destroyed.
         selectOnDestroy = false;
