@@ -4,15 +4,14 @@
 #include <chan/threading/mutex.h>
 #include <chan/threading/sharedptr.h>
 
+#include <cassert>
+#include <ostream>
+
 namespace chan {
 
-// `EventKey` identifies an event within a `select` invocation.
+// `EventKey` identifies an event within a `select` invocation.  It's meant to
+// be opaque except for in the implementation of `select`.
 typedef int EventKey;
-
-// Return the null value of `EventKey`.
-inline EventKey nullEventKey() {
-    return -1;
-}
 
 // `SelectorFulfillment` is a means by which an event in one `select`
 // invocation can check or set the fulfillment of an event in a different
@@ -22,13 +21,22 @@ struct SelectorFulfillment {
     // used to determine the locking order among two or more
     // `SelectorFulfillment::mutex`.
     Mutex mutex;
-    // key of the fulfilled event, or null if no event is fulfilled (see
-    // `isNull`, above).
+
+    enum State {
+        FULFILLABLE,   // not fulfilled, and fulfillment is allowed
+        FULFILLED,     // has already been fulfilled
+        UNFULFILLABLE  // not fulfilled, but fulfillment is not allowed
+    };
+
+    State state;
+
+    // key of the fulfilled event; valid only if `state == FULFILLED`
     EventKey fulfilledEventKey;
 
     SelectorFulfillment()
     : mutex()
-    , fulfilledEventKey(nullEventKey()) {
+    , state(FULFILLABLE)
+    , fulfilledEventKey(-1) {
     }
 };
 
@@ -50,8 +58,20 @@ struct EventContext {
                  EventKey                              eventKey)
     : fulfillment(fulfillment)
     , eventKey(eventKey) {
+        assert(fulfillment);
+    }
+
+    EventContext()
+    : fulfillment()
+    , eventKey(-1) {
     }
 };
+
+inline std::ostream& operator<<(std::ostream&       stream,
+                                const EventContext& context) {
+    return stream << "[eventKey=" << context.eventKey
+                  << " fulfillment=" << context.fulfillment.get() << "]";
+}
 
 }  // namespace chan
 

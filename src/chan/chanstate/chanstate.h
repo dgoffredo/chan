@@ -1,7 +1,8 @@
 #ifndef INCLUDED_CHAN_CHANSTATE_CHANSTATE
 #define INCLUDED_CHAN_CHANSTATE_CHANSTATE
 
-#include <chan/files/pipepair.h>
+#include <chan/event/eventcontext.h>
+#include <chan/files/pipe.h>
 #include <chan/files/pipepool.h>
 
 #include <list>
@@ -9,11 +10,9 @@
 namespace chan {
 
 // `ChanParticipant` are the fields common to `ChanSender` and `SendReceiver`.
-template <typename OBJECT>
 struct ChanParticipant {
-    typedef OBJECT ObjectType;
-
-    PipePair* pipes;
+    Pipe*        pipe;
+    EventContext context;
 
     // We were poked but have yet to respond to it.  This flag is used to avoid
     // a deadlock that would result from both a sender and a receiver being
@@ -22,13 +21,14 @@ struct ChanParticipant {
     bool isPoked;
 
     ChanParticipant()
-    : pipes()
+    : pipe()
+    , context()
     , isPoked() {
     }
 };
 
 template <typename OBJECT>
-struct ChanSender : public ChanParticipant<OBJECT> {
+struct ChanSender : public ChanParticipant {
     // In C++98, using the `MOVE` `TransferMode` performs a swap instead of a
     // move.  The real difference between the two values of this `enum` is
     // which of the members of the union below will be accessed.
@@ -41,14 +41,12 @@ struct ChanSender : public ChanParticipant<OBJECT> {
 };
 
 template <typename OBJECT>
-struct ChanReceiver : public ChanParticipant<OBJECT> {
+struct ChanReceiver : public ChanParticipant {
     OBJECT* destination;
 };
 
 template <typename OBJECT>
 struct ChanState {
-    typedef OBJECT ObjectType;
-
     Mutex                            mutex;
     std::list<ChanSender<OBJECT> >   senders;
     std::list<ChanReceiver<OBJECT> > receivers;

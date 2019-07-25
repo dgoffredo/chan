@@ -71,7 +71,7 @@ class SharedPtr {
 
     explicit SharedPtr(OBJECT* object)
     : object(object)
-    , controlBlock(new SharedPtrControlBlock) {
+    , controlBlock(new SharedPtrControlBlock()) {
     }
 
     SharedPtr(const SharedPtr& other)
@@ -88,6 +88,9 @@ class SharedPtr {
         decrementRefCount();
         object       = other.object;
         controlBlock = other.controlBlock;
+        incrementRefCount();
+
+        return *this;
     }
 
     ~SharedPtr() {

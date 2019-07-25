@@ -2,7 +2,9 @@
 #define INCLUDED_CHAN_EVENT_EVENTREF
 
 // `EventRef` is a type-erasing reference to any object that satisfies the
-// _Event_ concept.  The _Event_ concept is a set of three member functions:
+// _Event_ concept.  The _Event_ concept is a set of four member functions:
+//
+//     void touch() CHAN_NOEXCEPT;
 //
 //     IoEvent file(const EventContext&);
 //
@@ -20,6 +22,7 @@
 // Note that since `EventRef` has reference semantics, the lifetime of the
 // object to which it refers must exceed the `EventRef` lifetime.
 
+#include <chan/errors/noexcept.h>
 #include <chan/event/ioevent.h>
 
 #include <cassert>
@@ -30,6 +33,7 @@ namespace chan {
 class EventContext;  // see "chan/event/eventcontext.h"
 
 struct EventRefVtable {
+    void (*touch)(void* instance) CHAN_NOEXCEPT;
     IoEvent (*file)(void* instance, const EventContext& context);
     IoEvent (*fulfill)(void* instance, IoEvent);
     void (*cancel)(void* instance, IoEvent);
@@ -37,6 +41,10 @@ struct EventRefVtable {
 
 template <typename EVENT>
 struct EventRefVtableImpl {
+    static void touch(void* instance) CHAN_NOEXCEPT {
+        return ref(instance).touch();
+    }
+
     static IoEvent file(void* instance, const EventContext& context) {
         return ref(instance).file(context);
     }
@@ -46,7 +54,7 @@ struct EventRefVtableImpl {
     }
 
     static void cancel(void* instance, IoEvent ioEvent) {
-        ref(instance).cancel(ioEvent);
+        return ref(instance).cancel(ioEvent);
     }
 
     static const EventRefVtable vtable;
@@ -60,6 +68,7 @@ struct EventRefVtableImpl {
 
 template <typename EVENT>
 const EventRefVtable EventRefVtableImpl<EVENT>::vtable = {
+    &EventRefVtableImpl<EVENT>::touch,
     &EventRefVtableImpl<EVENT>::file,
     &EventRefVtableImpl<EVENT>::fulfill,
     &EventRefVtableImpl<EVENT>::cancel
@@ -94,6 +103,10 @@ class EventRef {
     explicit EventRef(EVENT& event)
     : d_instance_p(&event)
     , d_vtable_p(&EventRefVtableImpl<EVENT>::vtable) {
+    }
+
+    void touch() CHAN_NOEXCEPT {
+        return d_vtable_p->touch(d_instance_p);
     }
 
     IoEvent file(const EventContext& context) {

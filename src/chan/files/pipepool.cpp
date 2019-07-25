@@ -30,6 +30,7 @@ void drain(int file) {
     // There will be at most a few bytes of data in there, so the buffer can be
     // small.
     char buffer[8];
+    int  totalRead = 0;  // for debugging
     for (;;) {
         const int rcode = ::read(file, buffer, sizeof buffer);
         if (rcode == 0) {
@@ -49,7 +50,13 @@ void drain(int file) {
         }
 
         assert(rcode > 0);  // number of bytes read
+        totalRead += rcode;
     }
+
+    CHAN_TRACE("PipePool::drain read a total of ",
+               totalRead,
+               " bytes from file descriptor ",
+               file);
 }
 
 }  // namespace
@@ -63,12 +70,10 @@ PipePool::~PipePool() {
 
     const FreeListNode* node = freeList;
     while (node) {
-        const PipePair& pipePair = *node;
+        const Pipe& pipe = *node;
 
-        ::close(pipePair.fromVisitor);
-        ::close(pipePair.toSitter);
-        ::close(pipePair.fromSitter);
-        ::close(pipePair.toVisitor);
+        ::close(pipe.fromVisitor);
+        ::close(pipe.toSitter);
 
         const FreeListNode* next = node->next;
         delete node;
@@ -76,13 +81,19 @@ PipePool::~PipePool() {
     }
 }
 
-PipePair* PipePool::allocate() {
+Pipe* PipePool::allocate() {
     CHAN_WITH_LOCK(mutex) {
         if (freeList) {
             FreeListNode* result = freeList;
             freeList             = freeList->next;
 
-            CHAN_TRACE("Allocating recycled pipes at ", result);
+            CHAN_TRACE("Allocating recycled pipe at ",
+                       result,
+                       " (",
+                       result->toSitter,
+                       " -> ",
+                       result->fromVisitor,
+                       ")");
 
             ++result->referenceCount;
             assert(result->referenceCount == 1);
@@ -91,36 +102,48 @@ PipePair* PipePool::allocate() {
     }
 
     int towardsSitter[2];
-    int towardsVisitor[2];
     makePipe(towardsSitter);
-    makePipe(towardsVisitor);
 
-    FreeListNode* node      = new FreeListNode;
-    PipePair&     pipePair  = *node;
-    pipePair.toSitter       = towardsSitter[1];
-    pipePair.toVisitor      = towardsVisitor[1];
-    pipePair.fromSitter     = towardsVisitor[0];
-    pipePair.fromVisitor    = towardsSitter[0];
-    pipePair.referenceCount = 1;
+    FreeListNode* node  = new FreeListNode;
+    Pipe&         pipe  = *node;
+    pipe.fromVisitor    = towardsSitter[0];
+    pipe.toSitter       = towardsSitter[1];
+    pipe.referenceCount = 1;
 
-    CHAN_TRACE("Allocating new pipes at ", node);
+    CHAN_TRACE("Allocating new pipe at ",
+               node,
+               " (",
+               pipe.toSitter,
+               " -> ",
+               pipe.fromVisitor,
+               ")");
     return node;
 }
 
-void PipePool::deallocate(PipePair* pipePair) {
-    assert(pipePair);
+void PipePool::deallocate(Pipe* pipe) {
+    assert(pipe);
 
-    FreeListNode* node = static_cast<FreeListNode*>(pipePair);
-    CHAN_TRACE("Deallocating pipes at ",
+    // The only way that the following `static_cast` could be valid is if
+    // `pipe` really does refer to a `FreeListNode`.  Together with the fact
+    // that the definition of `FreeListNode` is private, that is why the
+    // contract of this function says: "The behavior is undefined unless `pipe`
+    // was obtained from the result of a previous call to `allocate` [...]".
+    FreeListNode* node = static_cast<FreeListNode*>(pipe);
+
+    CHAN_TRACE("Deallocating pipe at ",
                node,
                ", whose reference count is ",
-               pipePair->referenceCount);
+               pipe->referenceCount,
+               " (",
+               pipe->toSitter,
+               " -> ",
+               pipe->fromVisitor,
+               ")");
 
-    assert(pipePair->referenceCount == 0);
+    assert(pipe->referenceCount == 0);
 
     // Clear any data left in the pipe buffers.
-    drain(pipePair->fromVisitor);
-    drain(pipePair->fromSitter);
+    drain(pipe->fromVisitor);
 
     LockGuard lock(mutex);
 

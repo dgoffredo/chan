@@ -6,7 +6,7 @@ digraph structs {
     chanevents [label="{chanevents/|{chansend|chanrecv}}"];
     chanstate  [label="{chanstate/|{chanstate}}"];
     fileevents [label="{fileevents/|{read|write}}"];
-    files      [label="{files/|{pipepair|pipepool|file}}"];
+    files      [label="{files/|{pipe|pipepool|file}}"];
     select     [label="{select/|{select|lasterror|random}}"];
     errors     [label="{errors/|{error|errorcode|noexcept|strerror}}"];
     threading  [label="{threading/|{mutex|lockguard|sharedptr}}"];

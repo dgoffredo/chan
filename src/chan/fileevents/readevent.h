@@ -108,11 +108,13 @@ class ReadEvent {
         }
     }
 
-    IoEvent file(const EventContext&) const {
+    void touch() CHAN_NOEXCEPT {
         // We're participating with `select`, so there's no need to call
         // `select` when we're destroyed.
         selectOnDestroy = false;
+    }
 
+    IoEvent file(const EventContext&) const {
         IoEvent event;
         event.read = true;
         event.file = fd;

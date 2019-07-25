@@ -1,6 +1,7 @@
 #ifndef INCLUDED_CHAN_TIMEEVENTS_DEADLINE
 #define INCLUDED_CHAN_TIMEEVENTS_DEADLINE
 
+#include <chan/errors/noexcept.h>
 #include <chan/event/ioevent.h>
 #include <chan/time/duration.h>
 #include <chan/time/timepoint.h>
@@ -20,6 +21,9 @@ class DeadlineEvent {
   public:
     explicit DeadlineEvent(TimePoint when)
     : when(when) {
+    }
+
+    void touch() CHAN_NOEXCEPT {
     }
 
     IoEvent file(const EventContext&) const {

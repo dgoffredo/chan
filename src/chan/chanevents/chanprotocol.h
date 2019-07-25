@@ -6,12 +6,9 @@ namespace chan {
 class ChanProtocolMessage {
   public:
     enum Value {
-        HI,      // visitor greets a sitter
-        READY,   // sitter acknowledges visitor and awaits transfer
-        DONE,    // visitor notifies sitter that transfer succeeded
-        CANCEL,  // either notifies the other that it cancelled
-        ERROR,   // visitor tells the sitter that the transfer failed
-        POKE     // tell a sitter to become a visitor
+        DONE,   // visitor notifies sitter that transfer succeeded
+        ERROR,  // visitor tells the sitter that the transfer failed
+        POKE    // tell a sitter to become a visitor
     };
 
   private:
