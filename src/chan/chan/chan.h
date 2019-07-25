@@ -25,7 +25,7 @@ class Chan {
 
 template <typename OBJECT>
 Chan<OBJECT>::Chan()
-: state(new ChanState<OBJECT>) {
+: state(new ChanState<OBJECT>()) {
 }
 
 template <typename OBJECT>
@@ -72,7 +72,7 @@ class Chan<void> {
 };
 
 inline Chan<void>::Chan()
-: state(new ChanState<void>) {
+: state(new ChanState<void>()) {
 }
 
 inline SendEvent<void> Chan<void>::send() {

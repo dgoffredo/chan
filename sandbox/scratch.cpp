@@ -72,6 +72,8 @@ void* sendAndRecvChans(void* channelsRaw) {
     int               numReceived = 0;
     std::string       buffer;
 
+    CHAN_TRACE("I was just created.  My destination address is ", &buffer);
+
     while (numSent < quota && numReceived < quota) {
         switch (chan::select(channels.input.recv(&buffer),
                              channels.output.send(*(words + numSent)))) {
@@ -88,16 +90,26 @@ void* sendAndRecvChans(void* channelsRaw) {
         }
     }
 
+    CHAN_TRACE("Done with the first while loop. numSent=",
+               numSent,
+               " numReceived=",
+               numReceived);
     while (numSent < quota) {
         channels.output.send(*(words + numSent));
         ++numSent;
     }
 
+    CHAN_TRACE("Done with the second while loop. numSent=",
+               numSent,
+               " numReceived=",
+               numReceived);
     while (numReceived < quota) {
         channels.input.recv(&buffer);
         ++numReceived;
     }
 
+    CHAN_TRACE(
+        "I'm exiting.  numSent=", numSent, " numReceived=", numReceived);
     return 0;
 }
 
@@ -138,7 +150,7 @@ int testChanMultiplex(int argc, char* argv[]) {
 }
 
 void* sendChan(void* chanPtrRaw) {
-    CHAN_TRACE("I was just created.");
+    CHAN_TRACE("I'm a sender thread who was just created.");
 
     chan::Chan<std::string>* chanPtr =
         static_cast<chan::Chan<std::string>*>(chanPtrRaw);
@@ -160,11 +172,12 @@ void* sendChan(void* chanPtrRaw) {
         }
     }
 
+    CHAN_TRACE("I'm exiting.");
     return 0;
 }
 
 void* recvChan(void* chanPtrRaw) {
-    CHAN_TRACE("I was just created.");
+    CHAN_TRACE("I'm a receiver thread who was just created.");
 
     chan::Chan<std::string>* chanPtr =
         static_cast<chan::Chan<std::string>*>(chanPtrRaw);
@@ -185,6 +198,7 @@ void* recvChan(void* chanPtrRaw) {
         }
     }
 
+    CHAN_TRACE("I'm exiting.");
     return 0;
 }
 
@@ -195,6 +209,8 @@ int testChan(int argc, char* argv[]) {
     if (argc > 1) {
         numThreadPairs = std::atoi(argv[1]);
     }
+
+    CHAN_TRACE("I am the main thread.");
 
     std::vector<pthread_t> senders(numThreadPairs);
     for (int i = 0; i < numThreadPairs; ++i) {
@@ -209,8 +225,10 @@ int testChan(int argc, char* argv[]) {
     }
 
     for (int i = 0; i < numThreadPairs; ++i) {
+        CHAN_TRACE("waiting for sender ", i);
         int rc = pthread_join(senders[i], 0);
         assert(rc == 0);
+        CHAN_TRACE("waiting for receiver ", i);
         rc = pthread_join(receivers[i], 0);
         assert(rc == 0);
     }
@@ -324,6 +342,7 @@ int testTimePointAndDuration(int, char*[]) {
 
 int testShuffle(int, char* argv[]) {
     const int length = std::atoi(argv[1]);
+    assert(length);
 
     std::vector<int> numbers;
     numbers.reserve(length);
@@ -353,6 +372,8 @@ int testRandom(int, char* argv[]) {
     const int low    = std::atoi(argv[1]);
     const int high   = std::atoi(argv[2]);
     const int trials = std::atoi(argv[3]);
+
+    assert(trials);
 
     std::map<int, int> counts;
     chan::Random15     generator(0);  // seeded with zero

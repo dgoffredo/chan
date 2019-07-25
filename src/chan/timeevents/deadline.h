@@ -1,6 +1,7 @@
 #ifndef INCLUDED_CHAN_TIMEEVENTS_DEADLINE
 #define INCLUDED_CHAN_TIMEEVENTS_DEADLINE
 
+#include <chan/errors/noexcept.h>
 #include <chan/event/ioevent.h>
 #include <chan/time/duration.h>
 #include <chan/time/timepoint.h>
@@ -12,6 +13,8 @@
 
 namespace chan {
 
+class EventContext;
+
 class DeadlineEvent {
     TimePoint when;
 
@@ -20,7 +23,10 @@ class DeadlineEvent {
     : when(when) {
     }
 
-    IoEvent file() const {
+    void touch() CHAN_NOEXCEPT {
+    }
+
+    IoEvent file(const EventContext&) const {
         IoEvent result;
         result.timeout    = true;
         result.expiration = when;

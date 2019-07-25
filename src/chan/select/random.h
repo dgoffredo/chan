@@ -54,6 +54,10 @@ class Random15 {
     }
 };
 
+// Return a uniformly random integer derived from a system provided entropy
+// source (e.g. "/dev/urandom"), or return zero if no such source is available.
+int systemRandom();
+
 // Return an random integer from the specified range `[low, high]` (inclusive
 // on both sides), where each integer in the range has an equal probability of
 // being returned. Use the specified `generator` to provide a pseudo-random
@@ -114,9 +118,22 @@ void shuffle(CONTAINER& container, Random15& generator) {
     shuffle(container.begin(), container.end(), generator);
 }
 
-// Return a uniformly random integer derived from a system provided entropy
-// source (e.g. "/dev/urandom"), or return zero if no such source is available.
-int systemRandom();
+// Note that for repeated shuffling, it's better to use the overloads of
+// `shuffle` that take `Random15&`, so that `systemRandom` need not get called
+// as often.
+template <typename ITERATOR>
+void shuffle(ITERATOR begin, ITERATOR end) {
+    Random15 generator(systemRandom());
+    shuffle(begin, end, generator);
+}
+
+// Note that for repeated shuffling, it's better to use the overloads of
+// `shuffle` that take `Random15&`, so that `systemRandom` need not get called
+// as often.
+template <typename CONTAINER>
+void shuffle(CONTAINER& container) {
+    shuffle(container.begin(), container.end());
+}
 
 }  // namespace chan
 

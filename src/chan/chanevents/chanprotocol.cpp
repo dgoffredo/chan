@@ -21,10 +21,7 @@ ChanProtocolMessage fromByte(char byte) {
         static_cast<ChanProtocolMessage::Value>(byte);
 
     switch (result) {
-        case ChanProtocolMessage::HI:
-        case ChanProtocolMessage::READY:
         case ChanProtocolMessage::DONE:
-        case ChanProtocolMessage::CANCEL:
         case ChanProtocolMessage::ERROR:
             break;
         default:
@@ -41,10 +38,7 @@ const char* toName(ChanProtocolMessage message) {
         return #NAME;
 
     switch (message) {
-        CASE(HI)
-        CASE(READY)
         CASE(DONE)
-        CASE(CANCEL)
         CASE(ERROR)
         default:
             assert(message == ChanProtocolMessage::POKE);

@@ -1,16 +1,21 @@
 #include <chan/errors/error.h>
 #include <chan/errors/errorcode.h>
+#include <chan/event/eventcontext.h>
 #include <chan/select/lasterror.h>
 #include <chan/select/random.h>
 #include <chan/select/select.h>
+#include <chan/threading/lockguard.h>
+#include <chan/threading/mutex.h>
+#include <chan/threading/sharedptr.h>
 #include <chan/time/timepoint.h>
 
 #include <errno.h>
 #include <poll.h>
 
-#include <algorithm>
+#include <algorithm>  // std::max
 #include <cassert>
-#include <cstddef>  // std::size_t
+#include <cstddef>   // std::size_t
+#include <iterator>  // std::distance
 #include <vector>
 
 namespace chan {
@@ -45,13 +50,14 @@ class Selector {
     // The elements of `pollFds` are aliased by the members of `records`.  Each
     // `PollRecord` contains a pointer to one of the `pollfd` in `pollFds`.
     // This way, `records` can be shuffled to enforce some kind of fairness.
-    // The `Random15 generator` is used to do the shuffling.
-    std::vector<pollfd>     pollFds;
-    std::vector<PollRecord> records;
-    Random15                generator;
+    std::vector<pollfd>            pollFds;
+    std::vector<PollRecord>        records;
+    SharedPtr<SelectorFulfillment> fulfillment;
 
     // The following functions return an iterator to the "winner" (event that
     // was fulfilled), or otherwise to `records.end()` if there was no winner.
+    std::vector<PollRecord>::iterator checkForFulfillment(
+        std::vector<PollRecord>::iterator recordIter);
     std::vector<PollRecord>::iterator doPoll();
     std::vector<PollRecord>::iterator handleTimeout();
     std::vector<PollRecord>::iterator handleFileEvent();
@@ -69,70 +75,97 @@ class Selector {
 Selector::Selector(EventRef* events, const EventRef* end)
 : pollFds(end - events)
 , records()
-, generator(chan::systemRandom()) {
+, fulfillment(new SelectorFulfillment()) {
     records.reserve(pollFds.size());
     for (std::size_t i = 0; i < pollFds.size(); ++i) {
         const PollRecord record(events[i], &pollFds[i]);
         records.push_back(record);
+
+        // Call `touch` on the event so that the event knows that it is now
+        // part of a `select` statement.  In response to this, the event might
+        // set a flag within itself that prevents it from blocking in its
+        // destructor, for example.  `touch` will not throw an exception.
+        events[i].touch();
     }
 }
 
-int Selector::operator()() try {
-    // initial setup of `records`
-    for (std::vector<PollRecord>::iterator it = records.begin();
-         it != records.end();
-         ++it) {
-        PollRecord& record = *it;
-        record.ioEvent     = record.event.file();
-        record.state       = PollRecord::ACTIVE;
-    }
+int Selector::operator()() {
+    // When an event is finally fulfilled, we'll refer to its position in
+    // `records` using `winner`.  Its argument index will then be calculated
+    // and returned.  `records.end()` means that we don't yet have a winner.
+    std::vector<PollRecord>::iterator winner = records.end();
 
-    // Keep calling `::poll` until we either fulfill an event or throw an
-    // exception.
-    std::vector<PollRecord>::iterator winner;
-    do {
-        winner = doPoll();
-    } while (winner == records.end());
+    // Randomize the order of the `PollRecord`s so that a highly available
+    // event in front won't always get selected.
+    shuffle(records);
 
-    // Now that we have a winner, call `cancel` on all of the other events.
-    for (std::vector<PollRecord>::iterator it = records.begin();
-         it != records.end();
-         ++it) {
-        if (it != winner) {
+    // `fulfillment->mutex` will be locked all of the time except for:
+    // - during `::poll`
+    // - possibly within an event's `.file`, `.fulfill`, or `.cancel` methods
+    assert(fulfillment);
+    LockGuard lock(fulfillment->mutex);
+
+    try {
+        // initial setup of `records`
+        for (std::vector<PollRecord>::iterator it = records.begin();
+             it != records.end() && winner == records.end();
+             ++it) {
             PollRecord& record = *it;
-            record.event.cancel(record.ioEvent);
-            record.state = PollRecord::DONE;
+            // Use the index of `record` within `records` as the `EventKey`.
+            const EventKey key = std::distance(records.begin(), it);
+            record.ioEvent = record.event.file(EventContext(fulfillment, key));
+            record.state   = PollRecord::ACTIVE;
+
+            winner = checkForFulfillment(it);
         }
+
+        // Keep calling `::poll` until we either fulfill an event or throw an
+        // exception.
+        while (winner == records.end()) {
+            winner = doPoll();
+        }
+
+        // Now that we have a winner, call `cancel` on all of the other active
+        // events.
+        for (std::vector<PollRecord>::iterator it = records.begin();
+             it != records.end();
+             ++it) {
+            if (it != winner && it->state == PollRecord::ACTIVE) {
+                PollRecord& record = *it;
+                record.event.cancel(record.ioEvent);
+                record.state = PollRecord::DONE;
+            }
+        }
+
+        assert(winner != records.end());
+        assert(!pollFds.empty());
+        assert(winner->pollFd >= &pollFds.front());
+        assert(winner->pollFd <= &pollFds.back());
+
+        // The index of the winner is determined by the position of the
+        // `pollfd` in `pollFds`, because `records` will have been shuffled
+        // relative to that initial order.
+        const int winnerIndex = winner->pollFd - &pollFds.front();
+
+        return winnerIndex;
     }
-
-    assert(winner != records.end());
-    assert(!pollFds.empty());
-    assert(winner->pollFd >= &pollFds.front());
-    assert(winner->pollFd <= &pollFds.back());
-
-    // The index of the winner is determined by the position of the `pollfd`
-    // in `pollFds`, because `records` will have been shuffled relative to that
-    // initial order.
-    const int winnerIndex = winner->pollFd - &pollFds.front();
-
-    return winnerIndex;
-}
-catch (const Error& error) {
-    const Error finalError = handleError(error);
-    setLastError(finalError);
-    return finalError.code();
-}
-catch (const std::exception& error) {
-    const Error wrapper(error.what());
-    const Error finalError = handleError(wrapper);
-    setLastError(finalError);
-    return finalError.code();
-}
-catch (...) {
-    const Error error(ErrorCode::OTHER);
-    const Error finalError = handleError(error);
-    setLastError(finalError);
-    return finalError.code();
+    catch (const Error& error) {
+        const Error finalError = handleError(error);
+        setLastError(finalError);
+        return finalError.code();
+    }
+    catch (const std::exception& error) {
+        const Error wrapper(error.what());
+        const Error finalError = handleError(wrapper);
+        setLastError(finalError);
+        return finalError.code();
+    }
+    catch (...) {
+        const Error error(ErrorCode::OTHER);
+        const Error finalError = handleError(error);
+        setLastError(finalError);
+        return finalError.code();
+    }
 }
 
 void prepareRecord(PollRecord& record, const TimePoint*& deadline) {
@@ -160,6 +193,44 @@ void prepareRecord(PollRecord& record, const TimePoint*& deadline) {
     }
 }
 
+std::vector<PollRecord>::iterator Selector::checkForFulfillment(
+    std::vector<PollRecord>::iterator recordIter) {
+    PollRecord& record = *recordIter;
+
+    // The event might have returned an `IoEvent` indicating that the event is
+    // fulfilled, or it could be that an event in some other `Selector` updated
+    // our `fulfillment`.  Check both cases.
+    if (record.ioEvent.fulfilled) {
+        // If both `ioEvent.fulfilled` _and_ `fulfillment->fulfilledEventKey`
+        // are set, then they must match, or else the program is malformed.  It
+        // could be, though, that `fulfillment->fulfilledEventKey` is not set,
+        // which is fine.
+        if (fulfillment->state == SelectorFulfillment::FULFILLED) {
+            const EventKey currentKey = recordIter - records.begin();
+            assert(fulfillment->fulfilledEventKey == currentKey);
+            (void)currentKey;
+        }
+
+        // Mark this `select` statement as done, for anybody watching.
+        fulfillment->state             = SelectorFulfillment::FULFILLED;
+        fulfillment->fulfilledEventKey = recordIter - records.begin();
+
+        record.state = PollRecord::DONE;
+        return recordIter;
+    }
+    else if (fulfillment->state == SelectorFulfillment::FULFILLED) {
+        const std::vector<PollRecord>::iterator winner =
+            records.begin() + fulfillment->fulfilledEventKey;
+
+        winner->event.cancel(winner->ioEvent);
+        winner->state = PollRecord::DONE;
+        return winner;
+    }
+    else {
+        return records.end();
+    }
+}
+
 std::vector<PollRecord>::iterator Selector::doPoll() {
     // Set the fields of each 'pollfd' correctly based on each record's
     // `ioEvent`, and calculate the `deadline` (timeout), if any.
@@ -174,8 +245,34 @@ std::vector<PollRecord>::iterator Selector::doPoll() {
         deadline ? std::max(0L, (*deadline - now()) / milliseconds(1)) : -1;
 
     assert(!pollFds.empty());
+    assert(fulfillment);
 
-    switch (::poll(&pollFds.front(), pollFds.size(), timeout)) {
+    // `fulfillment` is unlocked for the duration of `::poll`, so that an event
+    // in a different `Selector` could possibly lock the mutex, mark one of our
+    // events as fulfilled, wake us up by triggering an event on one of the
+    // files we're monitoring, and then release the mutex.
+    fulfillment->mutex.unlock();
+    const int rc = ::poll(&pollFds.front(), pollFds.size(), timeout);
+    fulfillment->mutex.lock();
+
+    // If `fulfillment->state` is `FULFILLED`, then we don't even bother
+    // checking what woke us up from `::poll`, since we are now fulfilled.
+    if (fulfillment->state == SelectorFulfillment::FULFILLED) {
+        const int index = fulfillment->fulfilledEventKey;
+        assert(index >= 0);
+        assert(index < int(records.size()));
+
+        const std::vector<PollRecord>::iterator winner =
+            records.begin() + index;
+        // If `winner` had returned a fulfilled `IoEvent` from its `fulfill`
+        // method, then it would not have `cancel` called on it afterward.
+        // However, in this case, fulfillment happened in some other call, and
+        // so we must call cancel on it.
+        winner->event.cancel(winner->ioEvent);
+        return winner;
+    }
+
+    switch (rc) {
         case -1: {
             const int errorCode = errno;
             switch (errorCode) {
@@ -194,8 +291,6 @@ std::vector<PollRecord>::iterator Selector::doPoll() {
 }
 
 std::vector<PollRecord>::iterator Selector::handleTimeout() {
-    chan::shuffle(records, generator);
-
     const TimePoint after = now();
 
     for (std::vector<PollRecord>::iterator it = records.begin();
@@ -209,10 +304,10 @@ std::vector<PollRecord>::iterator Selector::handleTimeout() {
 
         // We found one of the events that expired.  Try to fulfill it.
         io = record.event.fulfill(io);
-        if (io.fulfilled) {
-            // we're done!
-            record.state = PollRecord::DONE;
-            return it;
+        const std::vector<PollRecord>::iterator winner =
+            checkForFulfillment(it);
+        if (winner != records.end()) {
+            return winner;
         }
     }
 
@@ -220,8 +315,6 @@ std::vector<PollRecord>::iterator Selector::handleTimeout() {
 }
 
 std::vector<PollRecord>::iterator Selector::handleFileEvent() {
-    chan::shuffle(records, generator);
-
     for (std::vector<PollRecord>::iterator it = records.begin();
          it != records.end();
          ++it) {
@@ -233,23 +326,23 @@ std::vector<PollRecord>::iterator Selector::handleFileEvent() {
         // Before calling `fulfill()` on the event, possibly set
         // response-only flags on the related `IoEvent`, so that
         // `fulfill()` has that information.
-        IoEvent& io = record.ioEvent;
+        IoEvent& ioEvent = record.ioEvent;
 
         if (record.pollFd->revents | POLLHUP) {
-            io.hangup = true;
+            ioEvent.hangup = true;
         }
         if (record.pollFd->revents | POLLERR) {
-            io.error = true;
+            ioEvent.error = true;
         }
         if (record.pollFd->revents | POLLNVAL) {
-            io.invalid = true;
+            ioEvent.invalid = true;
         }
 
-        io = record.event.fulfill(record.ioEvent);
-        if (io.fulfilled) {
-            // we're done!
-            record.state = PollRecord::DONE;
-            return it;
+        ioEvent = record.event.fulfill(record.ioEvent);
+        const std::vector<PollRecord>::iterator winner =
+            checkForFulfillment(it);
+        if (winner != records.end()) {
+            return winner;
         }
     }
 
@@ -257,7 +350,12 @@ std::vector<PollRecord>::iterator Selector::handleFileEvent() {
 }
 
 Error Selector::handleError(const Error& originalError) {
-    // To clean up, call `cancel` on any `PollRecord` current in the `ACTIVE`
+    // Mark our `SelectorFulfillment` as `UNFULFILLABLE` so that, even though
+    // we likely did not fulfill any event, nobody will try to interact with
+    // our events after we've been destroyed.
+    fulfillment->state = SelectorFulfillment::UNFULFILLABLE;
+
+    // To clean up, call `cancel` on any `PollRecord` currently in the `ACTIVE`
     // state.  However, doing so could throw an exception, so possibly append
     // error messages as we go.
     bool caughtAnotherOne = false;

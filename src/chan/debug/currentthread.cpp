@@ -32,9 +32,12 @@ int currentThread() {
     const std::vector<pthread_t>::const_iterator found =
         std::find_if(threads.begin(), threads.end(), ThreadEquals(current));
     if (found != threads.end()) {
+        // Found it.  Return its index in `threads`.
         return found - threads.begin() + 1;
     }
     else {
+        // Haven't seen this thread before.  Add it to `threads` and return
+        // its index in `threads`.
         threads.push_back(current);
         return threads.size();
     }

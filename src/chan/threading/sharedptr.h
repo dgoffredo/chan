@@ -20,9 +20,8 @@ using SharedPtr = std::shared_ptr<OBJECT>;
 #include <chan/threading/lockguard.h>
 #include <chan/threading/mutex.h>
 
-#include <algorithm>  // where std::swap is in C++98
+#include <algorithm>  // std::swap (C++98)
 #include <cassert>
-#include <utility>  // where std::swap is in C++11
 
 namespace chan {
 
@@ -72,7 +71,7 @@ class SharedPtr {
 
     explicit SharedPtr(OBJECT* object)
     : object(object)
-    , controlBlock(new SharedPtrControlBlock) {
+    , controlBlock(new SharedPtrControlBlock()) {
     }
 
     SharedPtr(const SharedPtr& other)
@@ -89,6 +88,9 @@ class SharedPtr {
         decrementRefCount();
         object       = other.object;
         controlBlock = other.controlBlock;
+        incrementRefCount();
+
+        return *this;
     }
 
     ~SharedPtr() {
