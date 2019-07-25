@@ -151,8 +151,8 @@ IoEvent ChanEvent<POLICY>::file(const EventContext& context) {
 
         const std::list<Opponent>& opponents = POLICY::opponents(chanState);
         if (teammates.size() == 1 && !opponents.empty()) {
-            // I'm a visitor.  Write HI to the sitter and then the `IoEvent` is
-            // to wait for the sitter to respond.
+            // I'm a visitor.  After copying into `them` the `Opponent` I'll be
+            // visiting, unlock the channel and attempt to transfer a value.
             CHAN_TRACE("I'm a visitor on channel ", &chanState);
 
             them = opponents.front();
@@ -218,8 +218,6 @@ IoEvent ChanEvent<POLICY>::attemptTransfer() {
         // or they're handling an error.
         // I will become a sitter, because if there's anyone after them I could
         // visit, they will get `POKE`d and visit me instead.
-        //
-        // TODO: Is this always correct, though?
         CHAN_TRACE("Somebody fulfilled them while I was visiting in channel ",
                    &chanState);
         return event;
@@ -253,9 +251,10 @@ IoEvent ChanEvent<POLICY>::attemptTransfer() {
     lock.unlock();
     cleanup();
 
-    event.fulfilled = true;  // TODO: Do I need to set the fulfillment as well?
-                             // The mutex is still locked and will remain so,
-                             // so I don't see why I'd need to.
+    // Indicate to `select` that we are fulfilled by setting `event.fulfilled`.
+    // We don't need to update `me.context.fulfillment` because `select` will
+    // do so when it sees that `event.fulfilled == true`.
+    event.fulfilled = true;
     return event;
 }
 
@@ -269,23 +268,20 @@ IoEvent ChanEvent<POLICY>::fulfill(IoEvent event) {
     // unlocked the `ChanState`'s mutex.  Hence this variable.
     Pipe* pipeToDeallocate = 0;
 
-    // TODO: handle special/error cases (hangup, error, invalid)
+    CHAN_TRACE("In fulfill handling event: ", event);
+    // Since we know that `event.file` is a pipe created by this library, and
+    // since the code in this component manages what happens with such pipes,
+    // we can assume that none of `hangup`, `error`, or `invalid` will ever
+    // happen.
+    assert(!event.hangup);
+    assert(!event.error);
+    assert(!event.invalid);
 
     switch (const ChanProtocolMessage message = readMessage(event.file)) {
-        case ChanProtocolMessage::DONE:
-            // `fulfill` will never get called by `select` due to receiving a
-            // `DONE` message, because if `::poll` wakes up and sees that
-            // something was fulfilled, it won't handle the event.
-            // However, the implementation of `cancel` might call `fulfill` if
-            // it knows that we have been fulfilled, in order to handle either
-            // the `DONE` or `ERROR` case.
-            assert(me.context.fulfillment);
-            assert(me.context.fulfillment->fulfilledEventKey ==
-                   me.context.eventKey);
-            CHAN_TRACE("About to call cleanup() after handling DONE in ",
-                       &chanState);
-            cleanup();
-            return event;  // in this case, the return value doesn't matter
+        // case ChanProtocolMessage::DONE:
+        // `fulfill` will never get called by `select` due to receiving a
+        // `DONE` message, because if `select` wakes up and sees that
+        // something was fulfilled, it won't handle the event.
         case ChanProtocolMessage::ERROR:
             // An exception was thrown on the other end of the channel during
             // the transfer.  We don't know what exactly, but we can report
@@ -371,7 +367,6 @@ void ChanEvent<POLICY>::cancel(IoEvent ioEvent) {
     // Otherwise, just `cleanup`.
     if (me.context.fulfillment->state == SelectorFulfillment::FULFILLED &&
         me.context.fulfillment->fulfilledEventKey == me.context.eventKey) {
-        // TODO: I found in my debugging that `POKE` is possible here.  How?
         CHAN_TRACE("About to read from cancel because I was the one "
                    "fulfilled.  I'm on channel ",
                    &chanState);
@@ -406,9 +401,9 @@ class PipeEquals {
 
 template <typename POLICY>
 void ChanEvent<POLICY>::cleanup() {
-    // Depending on the reference counts that we see after locking the
-    // mutex, we might afterward deallocate some pipe.  These flags keep
-    // track of whether to do so.
+    // Depending on the reference counts that we see after locking the mutex,
+    // we might afterward deallocate some pipe.  These flags keep track of
+    // whether to do so.
     bool deallocateMyPipe    = false;
     bool deallocateTheirPipe = false;
 
@@ -419,6 +414,7 @@ void ChanEvent<POLICY>::cleanup() {
 
     CHAN_TRACE("In cleanup(), about to acquire mutex for chanState ",
                &chanState);
+
     CHAN_WITH_LOCK(chanState.mutex) {
         CHAN_TRACE("In cleanup(), acquired mutex for chanState ", &chanState);
         std::list<Teammate>& teammates = POLICY::teammates(chanState);

@@ -22,7 +22,7 @@ namespace chan {
 namespace {
 
 struct PollRecord {
-    // pointer to the `struct` used to communicate with `::select`
+    // pointer to the `struct` used to communicate with `::poll`
     pollfd* pollFd;
 
     // the corresponding event
@@ -323,18 +323,18 @@ std::vector<PollRecord>::iterator Selector::handleFileEvent() {
             continue;  // this isn't one of the ready events
         }
 
-        // Before calling `fulfill()` on the event, possibly set
-        // response-only flags on the related `IoEvent`, so that
-        // `fulfill()` has that information.
+        // Before calling `fulfill()` on the event, possibly set response-only
+        // flags on the related `IoEvent`, so that `fulfill()` has that
+        // information.
         IoEvent& ioEvent = record.ioEvent;
 
-        if (record.pollFd->revents | POLLHUP) {
+        if (record.pollFd->revents & POLLHUP) {
             ioEvent.hangup = true;
         }
-        if (record.pollFd->revents | POLLERR) {
+        if (record.pollFd->revents & POLLERR) {
             ioEvent.error = true;
         }
-        if (record.pollFd->revents | POLLNVAL) {
+        if (record.pollFd->revents & POLLNVAL) {
             ioEvent.invalid = true;
         }
 

@@ -6,6 +6,11 @@
 // currently nine.
 #define CHAN_MAX_ARITY 9
 
+//     CHAN_QUOTE(ARG)
+//
+// expands to a string literal consisting of whatever ARG expands to.
+#define CHAN_QUOTE(ARG) #ARG
+
 //     CHAN_LENGTH(1, 2, 3, ..., N)
 //
 // expands to

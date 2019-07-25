@@ -1,7 +1,10 @@
 #ifndef INCLUDED_CHAN_EVENT_IOEVENT
 #define INCLUDED_CHAN_EVENT_IOEVENT
 
+#include <chan/macros/macros.h>
 #include <chan/time/timepoint.h>
+
+#include <ostream>
 
 // `IoEvent` is the value type used by objects satisying the _Event_ concept to
 // communicate with `select`.  See this package's `README.md` file for an
@@ -33,6 +36,29 @@ inline IoEvent::IoEvent()
 , error()
 , invalid()
 , file() {
+}
+
+inline std::ostream& operator<<(std::ostream& stream, IoEvent event) {
+    if (event.fulfilled) {
+        return stream << "[fulfilled]";
+    }
+    else if (event.timeout) {
+        // The following `reinterpret_cast` is valid, but breaks encapsulation.
+        // This is fine for debugging.
+        return stream << "[timeout expiration=("
+                      << reinterpret_cast<TimeSpec&>(event.expiration) << ")]";
+    }
+    else {
+        stream << "[file=" << event.file;
+#define MAYBE_PRINT_FLAG(NAME)          \
+    if (event.NAME) {                   \
+        stream << " " CHAN_QUOTE(NAME); \
+    }
+        CHAN_MAPP(MAYBE_PRINT_FLAG, (read, write, hangup, error, invalid))
+#undef MAYBE_PRINT_FLAG
+
+        return stream << "]";
+    }
 }
 
 }  // namespace chan
