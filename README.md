@@ -179,4 +179,21 @@ the same thing and consuming from and producing to queues, but instead only
 allows the computing power at a particular stage of a data pipeline to be
 increased (by using more workers).
 
+More
+----
+
+### Build
+```console
+$ bin/init-build
+$ make -C build
+$ ls -l build/libchan.a
+```
+The makefile understands the following two values of the `BUILD_TYPE`
+environment variable:
+
+- `Debug`: Disable optimizations and build with debugging symbols.
+- `Release`: Enable aggressive optimizations and omit debugging symbols.
+
+The default is `Release`.
+
 [go]: https://golang.org/
