@@ -1,5 +1,5 @@
 #ifndef INCLUDED_CHAN_FILEEVENTS_READINTOSTRING
-#define ICNLUDED_CHAN_FILEEVENTS_READINTOSTRING
+#define INCLUDED_CHAN_FILEEVENTS_READINTOSTRING
 
 #include <chan/errors/error.h>
 #include <chan/fileevents/readevent.h>
@@ -51,7 +51,7 @@ class ReadIntoStringEvent : public ReadEvent<ReadIntoString> {
     : ReadEvent<ReadIntoString>(file, ReadIntoString(destination, totalRead)) {
     }
 
-    operator std::string&() const {
+    operator std::string() const {
         selectOnDestroy = false;
 
         if (select(*this)) {
@@ -64,7 +64,7 @@ class ReadIntoStringEvent : public ReadEvent<ReadIntoString> {
 
 inline std::ostream& operator<<(std::ostream&              stream,
                                 const ReadIntoStringEvent& event) {
-    return stream << static_cast<std::string&>(event);
+    return stream << static_cast<std::string>(event);
 }
 
 inline ReadIntoStringEvent read(int          file,

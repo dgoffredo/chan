@@ -4,6 +4,7 @@
 #include <chan/fileevents/readintobuffer.h>
 #include <chan/fileevents/readintostring.h>
 #include <chan/fileevents/writefrombuffer.h>
+#include <chan/files/file.h>
 #include <chan/select/lasterror.h>
 #include <chan/select/random.h>
 #include <chan/select/select.h>
@@ -26,6 +27,21 @@
 #include <unistd.h>  // sleep
 
 namespace {
+
+int testFile(int argc, char* argv[]) {
+    assert(argc >= 2);
+
+    const char* const outputPath = argv[1];
+
+    chan::File input = chan::standardInput();
+    chan::File output;
+
+    chan::File::OpenResult rc = output.open(outputPath, chan::File::WRITE);
+    assert(rc == chan::File::SUCCESS);
+
+    output.write(input.read());
+    return 0;
+}
 
 int testWriteFromBuffer(int argc, char* argv[]) {
     assert(argc > 2);
@@ -446,6 +462,8 @@ int main(int argc, char* argv[]) {
             return testDefaultChan(argc, argv);
         case 10:
             return testWriteFromBuffer(argc, argv);
+        case 11:
+            return testFile(argc, argv);
         default:
             std::cerr << "Invalid test number " << testNum << "\n";
             return 1;
