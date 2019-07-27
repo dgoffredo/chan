@@ -64,7 +64,10 @@ const char* const messages[] = {
     // SELECT_UNWINDING
     "An exception was thrown by chan::select or by one of its callees, but"
     " then one or more additional exception were thrown while chan::select was"
-    " cleaning up as part of handling the exception.  Their messages follow."
+    " cleaning up as part of handling the exception.  Their messages follow.",
+
+    // WRITE
+    "Unable to write to a file."
 };
 
 }  // unnamed namespace

@@ -3,6 +3,7 @@
 #include <chan/errors/error.h>
 #include <chan/fileevents/readintobuffer.h>
 #include <chan/fileevents/readintostring.h>
+#include <chan/fileevents/writefrombuffer.h>
 #include <chan/select/lasterror.h>
 #include <chan/select/random.h>
 #include <chan/select/select.h>
@@ -14,6 +15,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <string>
@@ -24,6 +26,19 @@
 #include <unistd.h>  // sleep
 
 namespace {
+
+int testWriteFromBuffer(int argc, char* argv[]) {
+    assert(argc > 2);
+
+    const int fd = ::open(argv[1], O_WRONLY | O_CREAT);
+
+    assert(fd >= 0);
+
+    std::cout << chan::write(fd, argv[2], std::strlen(argv[2])) << "\n";
+
+    ::close(fd);
+    return 0;
+}
 
 void* waitForMessage(void* chanRaw) {
     chan::Chan<>& done = *static_cast<chan::Chan<>*>(chanRaw);
@@ -429,6 +444,8 @@ int main(int argc, char* argv[]) {
             return testChanMultiplex(argc, argv);
         case 9:
             return testDefaultChan(argc, argv);
+        case 10:
+            return testWriteFromBuffer(argc, argv);
         default:
             std::cerr << "Invalid test number " << testNum << "\n";
             return 1;

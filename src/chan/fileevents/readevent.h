@@ -102,7 +102,7 @@ class ReadEvent {
 
     ~ReadEvent() CHAN_THROWS {
         if (selectOnDestroy && !uncaughtExceptions()) {
-            if (chan::select(*this)) {
+            if (select(*this)) {
                 throw lastError();
             }
         }
@@ -139,7 +139,7 @@ class ReadEvent {
 
     void cancel(IoEvent) const {
     }
-};  // namespace chan
+};
 
 }  // namespace chan
 

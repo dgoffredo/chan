@@ -27,7 +27,8 @@ class ErrorCode {
         PROTOCOL_READ        = -14,
         PROTOCOL_READ_EOF    = -15,
         TRANSFER             = -16,
-        SELECT_UNWINDING     = -17
+        SELECT_UNWINDING     = -17,
+        WRITE                = -18
     };
 
   private:
