@@ -121,42 +121,6 @@ void lines(int                     fileDescriptor,
 }
 ```
 
-That could be simplified to the following, keeping in mind that
-`chan::File::readUntil` can have side effects even when it is not the event
-chosen by `select`:
-```C++
-#include <chan/chan.h>
-#include <chan/file.h>
-#include <chan/select.h>
-#include <iostream>
-
-void lines(int                     fileDescriptor,
-           chan::Chan<std::string> output,
-           chan::Chan<>            done,
-           std::string             delimiter = "\n")
-{
-    std::string message;
-    chan::File  input(fileDescriptor);
-
-    using chan::select;
-
-    for (;;) {
-        switch (select(input.readUntil(message, delimiter), done.recv())) {
-          case 0:
-              if (select(output.send(message), done.recv()) == 1)
-                  return;
-              message.clear();
-              break;
-          case 1:
-              return;
-          default:
-              std::cerr << chan::lastError().what() << "\n";
-              return;
-        }
-    }
-}
-```
-
 Finally, here's a plain old job-consuming worker; no `select` required:
 ```C++
 void worker(chan::Chan<std::function<Result()> jobs,
@@ -195,5 +159,31 @@ environment variable:
 - `Release`: Enable aggressive optimizations and omit debugging symbols.
 
 The default is `Release`.
+
+### Use in Your Code
+All include files are under the `chan/` directory of this repository's `src/`.
+Toplevel headers are included within `chan/` for convenience:
+
+- `chan/chan.h`
+- `chan/select.h`
+- `chan/errors.h`
+- `chan/file.h`
+
+For example,
+```C++
+#include <chan/chan.h>
+
+int main() {
+    chan::Chan<int> integers;
+    // ...
+}
+```
+
+It is sufficient to add `-I $CHAN_REPO/src` to your compilation commands, for
+some value of `CHAN_REPO`.
+
+Chan produces `libchan.a`, which can be linked into your program using the
+two linker flags `-L $CHAN_BUILD` and `-lchan`, for some value of
+`CHAN_BUILD`.
 
 [go]: https://golang.org/
