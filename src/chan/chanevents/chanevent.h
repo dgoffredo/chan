@@ -252,8 +252,8 @@ IoEvent ChanEvent<POLICY>::attemptTransfer() {
     cleanup();
 
     // Indicate to `select` that we are fulfilled by setting `event.fulfilled`.
-    // We don't need to update `me.context.fulfillment` because `select` will
-    // do so when it sees that `event.fulfilled == true`.
+    // This is redundant, since we set `me.context.fulfillment` accordingly,
+    // above, but might as well be consistent.
     event.fulfilled = true;
     return event;
 }
