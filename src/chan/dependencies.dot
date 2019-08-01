@@ -1,23 +1,28 @@
 digraph structs {
     node [shape=record, fontsize=11];
 
-    root       [label="{./|{chan.h|select.h|error.h|file.h}}"];
+    root       [label="{./|{chan.h|select.h|errors.h|file.h}}"];
     chan       [label="{chan/|{chan}}"];
-    chanevents [label="{chanevents/|{chansend|chanrecv}}"];
+    chanevents [label="{chanevents/|{chanevent|chansend|chanrecv|chanprotocol|fulfillmentlockguard}}"];
     chanstate  [label="{chanstate/|{chanstate}}"];
-    fileevents [label="{fileevents/|{read|write}}"];
-    files      [label="{files/|{pipe|pipepool|file}}"];
+    fileevents [label="{fileevents/|{readevent|writeevent|readintobuffer|readintostring|writefrombuffer|ignoresigpipe}}"];
+    files      [label="{files/|{pipe|pipepool|file|filenonblockingguard}}"];
     select     [label="{select/|{select|lasterror|random}}"];
-    errors     [label="{errors/|{error|errorcode|noexcept|strerror}}"];
+    errors     [label="{errors/|{error|errorcode|noexcept|strerror|uncaughtexceptions}}"];
     threading  [label="{threading/|{mutex|lockguard|sharedptr}}"];
-    event      [label="{event/|{eventref|ioevent}}"];
+    event      [label="{event/|{eventcontext|eventref|ioevent}}"];
     macros     [label="{macros/|{macros}}"];
     time       [label="{time/|{timepoint|duration|timespec}}"];
     timeevents [label="{timeevents/|{timeout|deadline}}"];
+    debug      [label="{debug/|{trace|currentthread}}"];
 
     root -> chan;
     root -> errors;
     root -> select;
+
+    chanevents -> debug
+    fileevents -> debug
+    files -> debug
 
     chan -> chanevents;
     chan -> chanstate;
