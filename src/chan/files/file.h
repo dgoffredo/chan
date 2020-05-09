@@ -10,9 +10,9 @@
 namespace chan {
 
 class File {
-    int         fd;
-    int         numBytesLastRead;
-    int         numBytesLastWritten;
+    int fd;
+    int numBytesLastRead;
+    int numBytesLastWritten;
 
   public:
     // Create a `File` object that does not refer to any file.
@@ -39,11 +39,7 @@ class File {
         return isOpen() ? this : 0;
     }
 
-    enum OpenMode {
-        READ,
-        WRITE,
-        READ_WRITE
-    };
+    enum OpenMode { READ, WRITE, READ_WRITE };
 
     enum OpenResult {
         SUCCESS,
@@ -58,7 +54,7 @@ class File {
     // `SUCCESS` if successful, after which `isOpen() == true` and
     // `closeOnDestroy == true`.  Return a non-`SUCCESS` `OpenResult` if an
     // error occurs.
-    OpenResult open(const char*        path, OpenMode mode);
+    OpenResult open(const char* path, OpenMode mode);
     OpenResult open(const std::string& path, OpenMode mode) {
         return open(path.c_str(), mode);
     }

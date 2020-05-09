@@ -30,33 +30,21 @@ void drain(int file) {
     // There will be at most a few bytes of data in there, so the buffer can be
     // small.
     char buffer[8];
-    int  totalRead = 0;  // for debugging
     for (;;) {
-        const int rcode = ::read(file, buffer, sizeof buffer);
-        if (rcode == 0) {
-            break;  // successfully read zero bytes, so it's now empty
+        switch (::read(file, buffer, sizeof buffer)) {
+            case 0:
+                return;  // successfully read zero bytes, so it's now empty
+            case -1:
+                switch (const int errorCode = errno) {
+                    case EAGAIN:
+                        return;  // no more data, so the pipe is now empty
+                    case EINTR:
+                        break;  // got a signal before anything was read; retry
+                    default:
+                        throw Error(ErrorCode::DRAIN_PIPE, errorCode);
+                }
         }
-        else if (rcode == -1) {
-            const int errorCode = errno;
-            if (errorCode == EAGAIN) {
-                break;  // no more data, so it's now empty
-            }
-            else if (errorCode != EINTR) {
-                // `EINTR` would mean that `read` was interrupted by a signal,
-                // which is fine, we just try again. If it was some other
-                // error, though, then we have to fail.
-                throw Error(ErrorCode::DRAIN_PIPE, errorCode);
-            }
-        }
-
-        assert(rcode > 0);  // number of bytes read
-        totalRead += rcode;
     }
-
-    CHAN_TRACE("PipePool::drain read a total of ",
-               totalRead,
-               " bytes from file descriptor ",
-               file);
 }
 
 }  // namespace
