@@ -19,7 +19,7 @@ int WriteFunc::operator()(const char* source, int numBytes) const {
 
     int numWritten = 0;
     while (numWritten < numBytes) {
-        const ssize_t rc = ::write(fd, source, numBytes - numWritten);
+        const ssize_t rc = ::write(fd, source + numWritten, numBytes - numWritten);
         if (rc != -1) {
             // successful write of `rc` bytes
             numWritten += rc;
